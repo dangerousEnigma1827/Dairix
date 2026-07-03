@@ -1,8 +1,10 @@
 import { useState } from "react";
 import { Eye, EyeOff, Lock, Phone } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 function Login() {
   const [showPin, setShowPin] = useState(false);
+  let navigate=useNavigate()
 
   return (
     <div className="h-screen overflow-hidden bg-slate-100 flex items-center justify-center p-6">
@@ -91,7 +93,9 @@ function Login() {
 
               <p className="text-center text-sm text-slate-500">
                 Don't have an account?{" "}
-                <button className="font-semibold text-blue-600 hover:text-blue-700">
+                <button className="font-semibold text-blue-600 hover:text-blue-700" onClick={(e)=>{
+                    navigate('/register')
+                }}>
                   Register
                 </button>
               </p>

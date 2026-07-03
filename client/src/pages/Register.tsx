@@ -1,9 +1,13 @@
 import { useState } from "react";
 import { Eye, EyeOff, Lock, Phone, User } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 function Register() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
+
+  let navigate=useNavigate()
 
   return (
     <div className="h-screen overflow-hidden bg-slate-100 flex items-center justify-center p-6">
@@ -134,7 +138,9 @@ function Register() {
 
               <p className="text-center text-sm text-slate-500">
                 Already have an account?{" "}
-                <button className="font-semibold text-blue-600 hover:text-blue-700">
+                <button className="font-semibold text-blue-600 hover:text-blue-700" onClick={(e)=>{
+                    navigate('/login')
+                }}>
                   Sign In
                 </button>
               </p>
