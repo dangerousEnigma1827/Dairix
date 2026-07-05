@@ -3,31 +3,36 @@ import ApiError from "../utils/ApiError.js";
 import ApiResponse from "../utils/ApiResponse.js";
 import asyncHandler from "../utils/asyncHandler.js";
 import cookieOptions from "../utils/cookieOptions.js";
-import jsonwebtoken from "jsonwebtoken"
+import jwt from "jsonwebtoken"
 import bcrypt from 'bcrypt'
 
 // ─────────────────────────────────────────────────────────────────────────────
 // POST /api/auth/signup
 // ─────────────────────────────────────────────────────────────────────────────
 export const signup = asyncHandler(async (req, res) => {
-  const { name, email, password, role } = req.body;
+  const { name, mobile, password, role } = req.body;
 
-  if (!name || !email || !password) {
-    throw new ApiError(400, "Name, email, and password are required");
+  console.log("sent here1")
+  if (!name || !mobile || !password) {
+    throw new ApiError(400, "Name, mobile, and password are required");
   }
 
-  const existingUser = await User.findOne({ email });
+  console.log("sent here2")
+
+  const existingUser = await User.findOne({ mobile });
   if (existingUser) {
-    throw new ApiError(409, "An account with this email already exists");
+    throw new ApiError(409, "An account with this mobile already exists");
   }
   
   const hashedPassword = await bcrypt.hash(password, 10);
-  const user = await User.create({ name, email, hashedPassword, role });
+  const user = await User.create({ name, mobile, password:hashedPassword, role });
+
+  console.log("sent here3")
 
   const token =  jwt.sign(
     {
       _id: user._id,
-      email: user.email,
+      mobile: user.mobile,
       role: user.role,
     },
     process.env.JWT_SECRET,
@@ -45,27 +50,27 @@ export const signup = asyncHandler(async (req, res) => {
 // POST /api/auth/login
 // ─────────────────────────────────────────────────────────────────────────────
 export const login = asyncHandler(async (req, res) => {
-  const { email, password } = req.body;
+  const { mobile, password } = req.body;
 
-  if (!email || !password) {
-    throw new ApiError(400, "Email and password are required");
+  if (!mobile || !password) {
+    throw new ApiError(400, "mobile and password are required");
   }
 
-  const user = await User.findOne({ email }).select("+password");
+  const user = await User.findOne({ mobile }).select("+password");
   if (!user) {
-    throw new ApiError(401, "Invalid email or password");
+    throw new ApiError(401, "Invalid mobile or password");
   }
 
   const isMatch = await bcrypt.compare(password, user.password)
 
   if (!isMatch) {
-    throw new ApiError(401, "Invalid email or password");
+    throw new ApiError(401, "Invalid mobile or password");
   }
 
   const token =  jwt.sign(
     {
       _id: user._id,
-      email: user.email,
+      mobile: user.mobile,
       role: user.role,
     },
     process.env.JWT_SECRET,
@@ -75,7 +80,7 @@ export const login = asyncHandler(async (req, res) => {
   return res
     .status(200)
     .cookie("token", token, cookieOptions)
-    .json(new ApiResponse(200, user, "User Logged In Successfully"))
+    .json(new ApiResponse(200, {user}, "User Logged In Successfully"))
 });
 
 // ─────────────────────────────────────────────────────────────────────────────

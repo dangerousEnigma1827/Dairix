@@ -17,17 +17,17 @@ function Signup() {
 
     const navigate=useNavigate()
 
-    const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        setFormData((prev) => ({
-            ...prev,
-            [e.target.name]: e.target.value,
-        }));
-    };
-
     const sendData = async () => {
+        if(formData.password != formData.confirmPassword){
+            alert("incorrect confirm password");return;
+        }
+
         let req = await api.post('/auth/signup', {
-            formData
+            name:formData.name,
+            mobile:formData.mobile,
+            password:formData.password
         });
+        
         console.log("sent")
     }
 
@@ -73,7 +73,10 @@ function Signup() {
                         className="w-full rounded-lg border border-slate-300 py-3 pl-12 pr-4 text-sm outline-none transition focus:border-blue-600 focus:ring-2 focus:ring-blue-200"
                         value={formData.name}
                         onChange={(e)=>{
-                            handleChange(e)
+                            setFormData((prev) => ({
+                                ...prev,
+                                name: e.target.value,
+                            }));
                         }}
                     />
                     </div>
@@ -96,7 +99,10 @@ function Signup() {
                         className="w-full rounded-lg border border-slate-300 py-3 pl-12 pr-4 text-sm outline-none transition focus:border-blue-600 focus:ring-2 focus:ring-blue-200"
                         value={formData.mobile}
                         onChange={(e)=>{
-                            handleChange(e)
+                            setFormData((prev) => ({
+                                ...prev,
+                                mobile: e.target.value,
+                            }));
                         }}
                     />
                     </div>
@@ -119,7 +125,10 @@ function Signup() {
                         placeholder="Create a password"
                         className="w-full rounded-lg border border-slate-300 py-3 pl-12 pr-12 text-sm outline-none transition focus:border-blue-600 focus:ring-2 focus:ring-blue-200"
                         onChange={(e)=>{
-                            handleChange(e)
+                            setFormData((prev) => ({
+                                ...prev,
+                                password: e.target.value,
+                            }));
                         }}
                     />
 
@@ -150,7 +159,10 @@ function Signup() {
                         placeholder="Confirm your password"
                         className="w-full rounded-lg border border-slate-300 py-3 pl-12 pr-12 text-sm outline-none transition focus:border-blue-600 focus:ring-2 focus:ring-blue-200"
                         onChange={(e)=>{
-                            handleChange(e)
+                            setFormData((prev) => ({
+                                ...prev,
+                                confirmPassword: e.target.value,
+                            }));
                         }}
                     />
 
@@ -170,7 +182,7 @@ function Signup() {
                     </div>
                 </div>
 
-                <button className="w-full rounded-lg bg-blue-600 py-3 font-semibold text-white transition hover:bg-blue-700">
+                <button className="w-full rounded-lg bg-blue-600 py-3 font-semibold text-white transition hover:bg-blue-700" onClick={(e)=>{sendData()}}>
                     Continue
                 </button>
 
