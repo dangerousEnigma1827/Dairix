@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import Login from './pages/Login'
-import Register from './pages/Register'
+import Register from './pages/Signup'
 import OwnerDashboard from './pages/Owner/OwnerDashboard'
 import CustomerDashboard from './pages/Owner/CustomerDashboard'
 import DeliveryDashboard from './pages/Owner/DeliveryDashboard'

@@ -6,6 +6,8 @@ function Login() {
   const [showPin, setShowPin] = useState(false);
   let navigate=useNavigate()
 
+
+
   return (
     <div className="h-screen overflow-hidden bg-slate-100 flex items-center justify-center p-6">
       <div className="w-full max-w-5xl h-[620px] overflow-hidden rounded-3xl bg-white shadow-2xl flex">

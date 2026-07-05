@@ -11,8 +11,12 @@ app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser())
 
 
-app.get("/api/health", (_req, res) => {
-  res.json({ status: "ok", project: "DairyDesk", timestamp: new Date().toISOString() });
+app.get("/api/health", (req, res) => {
+  res.json({ status: "ok", project: "Dairix", timestamp: new Date().toISOString() });
+});
+
+app.get("/", (req, res) => {
+  res.json({ status: "ok", project: "Dairix", timestamp: new Date().toISOString() });
 });
 
 // ── Routes (mount here as you build them) ─────────────────────────────────────
