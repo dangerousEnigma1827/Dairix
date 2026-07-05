@@ -20,6 +20,12 @@ function Login() {
       });
 
       console.log("login success", res.data);
+
+      const user = res.data.data.user;
+
+      if (user.role === "owner") navigate("/owner");
+      else if (user.role === "dm") navigate("/dm");
+      else navigate("/customer");
     } catch (err:any) {
       console.log("LOGIN ERROR:", err.response?.data);
       alert(err.response?.data?.message || "Login failed");

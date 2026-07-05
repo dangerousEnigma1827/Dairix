@@ -14,7 +14,7 @@ type UserContextType={
     loading:boolean
 }
 
-const UserContext = createContext<UserContextType|null>(null)
+export const UserContext = createContext<UserContextType|null>(null)
 
 export const UserProvider = ({children}:{children:React.ReactNode}) => {
     const [loading, setLoading]=useState(true)
