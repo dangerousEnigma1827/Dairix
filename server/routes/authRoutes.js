@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { signup, login, logout, getMe } from "../controllers/authControllers.js";
-// import { authenticate } from "../middlewares/authMiddlewares.js";
+import { authenticate } from "../middlewares/authMiddlewares.js";
 import { signUpSchema, loginSchema } from "../schemas/authSchemas.js";
 import validate from '../middlewares/validateMiddlewares.js'
 

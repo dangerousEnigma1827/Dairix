@@ -52,7 +52,7 @@ function Signup() {
                 </h2>
 
                 <p className="mt-2 mb-8 text-slate-500">
-                Register your account
+                reg your account
                 </p>
 
                 <div className="space-y-5">
