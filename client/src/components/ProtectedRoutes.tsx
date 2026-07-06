@@ -10,7 +10,7 @@ export default function ProtectedRoute({
 }) {
   const { user, loading } = useUser();
 
-  if (loading) return <div>Loading...</div>;
+  if (loading) return <Navigate to="/loading"/>
 
   if (!user) {
     return <Navigate to="/login" />;
