@@ -87,13 +87,19 @@ function AddDMModal({ isOpen, onClose }: Props) {
             });
 
         }catch(err:any) {
-            console.log("error adding DM", err);
+
+            console.log("error adding DM", err.response.data);
 
             if (err?.response?.data?.message === "Validation Error") {
-                toast("Validation error — check the highlighted fields", {
-                    style: { background: "#1E88E5", color: "#fff" },
+                toast("Validation error — fill all the fields", {
+                    style: { background: "#2563EB", color: "#fff" },
                 });
-            } else {
+            } else if(err?.response?.data?.message === "Mobile number already exists"){
+                toast("Mobile number already exists", {
+                    style: { background: "#2563EB", color: "#fff" },
+                });
+            }
+            else {
                 toast("Couldn't create DM. Try again.", {
                     style: { background: "#2563EB", color: "#fff" },
                 });

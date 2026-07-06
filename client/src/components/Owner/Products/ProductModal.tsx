@@ -45,7 +45,7 @@ function ProductModal({ isOpen, onClose }: Props) {
             setFormData({name:"",price:"",unit:"",image:""})
 
             toast("Added Product Successfully!", {
-                style: { background: '#1E88E5', color: '#fff' }
+                style: { background: '#2563EB', color: '#fff' }
             })
 
             console.log(formData)
@@ -55,14 +55,23 @@ function ProductModal({ isOpen, onClose }: Props) {
             //need error if existing product also
             if(err?.response?.data?.message=="Validation Error"){
                 toast("Validation Error, Fill All Inputs!", {
-                    style: { background: '#1E88E5', color: '#fff' }
+                    style: { background: '#2563EB', color: '#fff' }
+                })
+            }else if(err?.response?.data?.message=="Product already exists"){
+                toast("Product already exists!", {
+                    style: { background: '#2563EB', color: '#fff' }
+                })
+            }else{
+                toast("An Error Occured!", {
+                    style: { background: '#2563EB', color: '#fff' }
                 })
             }
+
         }finally{
             setLoading((prev)=>{
                 return {...prev, addProductLoading:false}
             })
-            
+            onClose()
         }
     }
 

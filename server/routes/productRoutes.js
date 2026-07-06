@@ -11,7 +11,7 @@ import validate from "../middlewares/validateMiddlewares.js";
 
 const router = express.Router();
 
-router.post("/", createProduct);
+router.post("/", validate(productSchema), createProduct);
 router.get("/", getProducts);
 // router.patch("/:id", updateProduct);
 // router.delete("/:id", deleteProduct);

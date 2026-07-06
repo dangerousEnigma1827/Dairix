@@ -1,5 +1,9 @@
 import bcrypt from "bcrypt";
 import User from "../models/userModels.js";
+import ApiError from "../utils/apiError.js";
+import ApiResponse from "../utils/apiResponse.js";
+import asyncHandler from "../utils/asyncHandler.js";
+
 
 const generatePassword = (length = 10) => {
     const chars =
@@ -15,170 +19,187 @@ const generatePassword = (length = 10) => {
 };
 
 
-export const createDM = async (req, res) => {
-    try {
-        const { name, mobile, password } = req.body;
+export const createDM = asyncHandler(async (req, res) => {
 
-        const existingDM = await User.findOne({ mobile });
+    const { name, mobile, password } = req.body;
 
-        if (existingDM) {
-            return res.status(400).json({
-                message: "Mobile number already exists"
-            });
-        }
 
-        const plainPassword = password || generatePassword();
-
-        const hashedPassword = await bcrypt.hash(plainPassword, 10);
-
-        const dm = await User.create({
-            name,
-            mobile,
-            password: hashedPassword,
-            role: "dm"
-        });
-
-        res.status(201).json({
-            message: "DM created successfully",
-            tempPassword: plainPassword,
-            dm: {
-                _id: dm._id,
-                name: dm.name,
-                mobile: dm.mobile,
-                role: dm.role
-            }
-        });
-
-    } catch (err) {
-        res.status(500).json({
-            message: "Error creating DM",
-            error: err.message
-        });
+    if (!name || !mobile || mobile.length !== 10) {
+        throw new ApiError(
+            400,
+            "Validation Error",
+            "Invalid name or mobile number"
+        );
     }
-};
 
 
-export const getAllDMs = async (req, res) => {
-    try {
+    const existingDM = await User.findOne({ mobile });
 
-        const dms = await User
-            .find({ role: "dm" })
-            .select("-password");
-
-        res.json(dms);
-
-    } catch (err) {
-        res.status(500).json({
-            message: "Error fetching DMs",
-            error: err.message
-        });
+    if (existingDM) {
+        throw new ApiError(
+            400,
+            "Mobile number already exists"
+        );
     }
-};
 
 
-export const getDMById = async (req, res) => {
-    try {
-
-        const dm = await User
-            .findOne({
-                _id: req.params.id,
-                role: "dm"
-            })
-            .select("-password");
+    const plainPassword = password || generatePassword();
 
 
-        if (!dm) {
-            return res.status(404).json({
-                message: "DM not found"
-            });
-        }
+    const hashedPassword = await bcrypt.hash(
+        plainPassword,
+        10
+    );
 
 
-        res.json(dm);
-
-    } catch (err) {
-        res.status(500).json({
-            message: "Error fetching DM",
-            error: err.message
-        });
-    }
-};
+    const dm = await User.create({
+        name,
+        mobile,
+        password: hashedPassword,
+        role:"dm"
+    });
 
 
-export const updateDM = async (req, res) => {
-    try {
-
-        const { name, mobile } = req.body;
-
-
-        const dm = await User
-            .findOneAndUpdate(
+    return res
+        .status(201)
+        .json(
+            new ApiResponse(
+                201,
                 {
-                    _id: req.params.id,
-                    role: "dm"
+                    _id: dm._id,
+                    name: dm.name,
+                    mobile: dm.mobile,
+                    role: dm.role,
+                    tempPassword: plainPassword
                 },
-                {
-                    name,
-                    mobile
-                },
-                {
-                    new:true
-                }
+                "DM created successfully"
             )
-            .select("-password");
+        );
+
+});
 
 
-        if (!dm) {
-            return res.status(404).json({
-                message:"DM not found"
-            });
-        }
+
+export const getAllDMs = asyncHandler(async(req,res)=>{
+
+    const dms = await User
+        .find({role:"dm"})
+        .select("-password");
 
 
-        res.json({
-            message:"DM updated successfully",
-            dm
-        });
+    return res
+        .status(200)
+        .json(
+            new ApiResponse(
+                200,
+                dms,
+                "DMs fetched successfully"
+            )
+        );
+
+});
 
 
-    } catch(err) {
 
-        res.status(500).json({
-            message:"Error updating DM",
-            error:err.message
-        });
+export const getDMById = asyncHandler(async(req,res)=>{
 
-    }
-};
-
-
-export const deleteDM = async (req, res) => {
-    try {
-
-        const dm = await User.findOneAndDelete({
+    const dm = await User
+        .findOne({
             _id:req.params.id,
             role:"dm"
-        });
+        })
+        .select("-password");
 
 
-        if(!dm){
-            return res.status(404).json({
-                message:"DM not found"
-            });
-        }
-
-
-        res.json({
-            message:"DM deleted successfully"
-        });
-
-
-    } catch(err){
-
-        res.status(500).json({
-            message:"Error deleting DM",
-            error:err.message
-        });
-
+    if(!dm){
+        throw new ApiError(
+            404,
+            "DM not found"
+        );
     }
-};
+
+
+    return res
+        .status(200)
+        .json(
+            new ApiResponse(
+                200,
+                dm
+            )
+        );
+
+});
+
+
+
+export const updateDM = asyncHandler(async(req,res)=>{
+
+    const {name,mobile}=req.body;
+
+
+    const dm = await User
+        .findOneAndUpdate(
+            {
+                _id:req.params.id,
+                role:"dm"
+            },
+            {
+                name,
+                mobile
+            },
+            {
+                new:true
+            }
+        )
+        .select("-password");
+
+
+    if(!dm){
+        throw new ApiError(
+            404,
+            "DM not found"
+        );
+    }
+
+
+    return res
+        .status(200)
+        .json(
+            new ApiResponse(
+                200,
+                dm,
+                "DM updated successfully"
+            )
+        );
+
+});
+
+
+
+export const deleteDM = asyncHandler(async(req,res)=>{
+
+    const dm = await User.findOneAndDelete({
+        _id:req.params.id,
+        role:"dm"
+    });
+
+
+    if(!dm){
+        throw new ApiError(
+            404,
+            "DM not found"
+        );
+    }
+
+
+    return res
+        .status(200)
+        .json(
+            new ApiResponse(
+                200,
+                null,
+                "DM deleted successfully"
+            )
+        );
+
+});
