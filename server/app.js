@@ -19,7 +19,7 @@ app.get("/api/health", (req, res) => {
 });
 
 app.get("/", (req, res) => {
-  res.json({ status: "ok", project: "Dairix", timestamp: new Date().toISOString() });
+  // res.json({ status: "ok", project: "Dairix", timestamp: new Date().toISOString() });
 });
 
 // ── Routes (mount here as you build them) ─────────────────────────────────────
@@ -27,7 +27,9 @@ app.get("/", (req, res) => {
 // app.use("/api/auth", authRoutes);
 
 import authRoutes from "./routes/authRoutes.js"
+import productRoutes from "./routes/productRoutes.js"
 app.use('/api/auth', authRoutes)
+app.use('/api/products', productRoutes)
 
 // ── 404 + global error handler (must be last) ──────────────────────────────────
 

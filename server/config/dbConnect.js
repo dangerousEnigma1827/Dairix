@@ -10,14 +10,14 @@ export const dbConnect = async () => {
 
   try {
     const conn = await mongoose.connect(uri);
-    console.log(`[DB] MongoDB connected → ${conn.connection.host}`);
+    // console.log(`[DB] MongoDB connected → ${conn.connection.host}`);
   } catch (err) {
     console.error(`[DB] Connection failed: ${err.message}`);
     process.exit(1);
   }
 
   mongoose.connection.on("disconnected", () => {
-    console.warn("[DB] MongoDB disconnected.");
+    // console.warn("[DB] MongoDB disconnected.");
   });
 
   mongoose.connection.on("error", (err) => {

@@ -9,7 +9,7 @@ const startServer = async () => {
   const server = http.createServer(app);
 
   server.listen(PORT, () => {
-    console.log(`[Dairix] running on port ${PORT} — ${process.env.NODE_ENV} mode`);
+    // console.log(`[Dairix] running on port ${PORT} — ${process.env.NODE_ENV} mode`);
   });
 
   server.on("error", (err) => {

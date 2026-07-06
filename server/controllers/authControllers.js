@@ -12,12 +12,9 @@ import bcrypt from 'bcrypt'
 export const signup = asyncHandler(async (req, res) => {
   const { name, mobile, password, role } = req.body;
 
-  console.log("sent here1")
   if (!name || !mobile || !password) {
     throw new ApiError(400, "Name, mobile, and password are required");
   }
-
-  console.log("sent here2")
 
   const existingUser = await User.findOne({ mobile });
   if (existingUser) {
@@ -26,8 +23,6 @@ export const signup = asyncHandler(async (req, res) => {
   
   const hashedPassword = await bcrypt.hash(password, 10);
   const user = await User.create({ name, mobile, password:hashedPassword, role });
-
-  console.log("sent here3")
 
   const token =  jwt.sign(
     {

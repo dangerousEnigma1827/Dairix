@@ -1,5 +1,9 @@
 import { useState } from 'react'
+
+//libraries
+import { Toaster } from 'react-hot-toast'
 import { Route,Routes } from 'react-router-dom'
+
 
 //general pages
 import ProtectedRoute from './components/ProtectedRoutes'
@@ -24,6 +28,7 @@ function App() {
 
   return (
     <>
+      <Toaster position="top-right"/>
       <Routes>
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Signup />} />

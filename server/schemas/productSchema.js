@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-export const productSchema = z.object({
+const productSchema = z.object({
     name: z
         .string()
         .trim()
@@ -23,3 +23,5 @@ export const productSchema = z.object({
         .string()
         .url("Please provide a valid image URL"),
 });
+
+export default productSchema;
