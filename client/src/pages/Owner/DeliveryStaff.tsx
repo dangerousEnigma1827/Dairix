@@ -1,13 +1,12 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Plus, Phone, Users, Truck, Search, ArrowUpRight } from "lucide-react";
 import AddDMModal from "../../components/Owner/DeliveryStaff/AddDMModal";
+import { getAllDms } from "../../api/Services/DmServices";
 
 type DM = {
     id: number;
     name: string;
-    phone: string;
-    customers: number;
-    active: boolean;
+    mobile: string;
 };
 
 const avatarPalette = [
@@ -30,33 +29,44 @@ function DeliveryStaff() {
     const [showModal, setShowModal] = useState(false);
     const [search, setSearch] = useState("");
 
-    const [dms, setDms] = useState<DM[]>([
-        { id: 1, name: "Ravi Kumar", phone: "9876543210", customers: 12, active: true },
-        { id: 2, name: "Suresh", phone: "9123456780", customers: 18, active: true },
-        { id: 3, name: "Ahmed", phone: "9988776655", customers: 9, active: false },
-    ]);
+    const [dms, setDms] = useState<DM[]>([]);
 
-    const handleDMAdded = (newDM: { name: string; phone: string }) => {
+    const handleGetDms = async () => {
+        try{
+            console.log("1")
+            let req = await getAllDms();
+            setDms(req)
+        }catch(err:any){
+            console.log("error occured handling all ds", err)
+        }
+        
+    }
+
+    const handleDMAdded = (newDM: { name: string; mobile: string }) => {
         setDms((prev) => [
             ...prev,
             {
                 id: Date.now(),
                 name: newDM.name,
-                phone: newDM.phone,
-                customers: 0,
-                active: false,
+                mobile: newDM.mobile,
+                // customers: 0,
+                // active: false,
             },
         ]);
     };
 
-    const filteredDms = dms.filter(
+    const filteredDms = dms?.filter(
         (dm) =>
             dm.name.toLowerCase().includes(search.toLowerCase()) ||
-            dm.phone.includes(search)
+            dm.mobile.includes(search)
     );
 
-    const activeCount = dms.filter((dm) => dm.active).length;
-    const totalCustomers = dms.reduce((sum, dm) => sum + dm.customers, 0);
+    useEffect(()=>{
+        handleGetDms()
+    },[])
+
+    // const activeCount = dms.filter((dm) => dm.active).length;
+    // const totalCustomers = dms.reduce((sum, dm) => sum + dm.customers, 0);
 
     return (
         <div className="min-h-screen bg-slate-50 p-6 md:p-8">
@@ -92,7 +102,7 @@ function DeliveryStaff() {
                         </div>
                         <div>
                             <p className="text-sm text-slate-500">Total DMs</p>
-                            <p className="text-2xl font-bold text-slate-900">{dms.length}</p>
+                            <p className="text-2xl font-bold text-slate-900">{dms?.length}</p>
                         </div>
                     </div>
 
@@ -102,7 +112,7 @@ function DeliveryStaff() {
                         </div>
                         <div>
                             <p className="text-sm text-slate-500">Active today</p>
-                            <p className="text-2xl font-bold text-slate-900">{activeCount}</p>
+                            {/* <p className="text-2xl font-bold text-slate-900">{activeCount}</p> */}
                         </div>
                     </div>
 
@@ -112,7 +122,7 @@ function DeliveryStaff() {
                         </div>
                         <div>
                             <p className="text-sm text-slate-500">Total customers</p>
-                            <p className="text-2xl font-bold text-slate-900">{totalCustomers}</p>
+                            {/* <p className="text-2xl font-bold text-slate-900">{totalCustomers}</p> */}
                         </div>
                     </div>
                 </div>
@@ -123,13 +133,13 @@ function DeliveryStaff() {
                     <input
                         value={search}
                         onChange={(e) => setSearch(e.target.value)}
-                        placeholder="Search by name or phone"
+                        placeholder="Search by name or mobile"
                         className="w-full rounded-xl border border-slate-200 bg-white py-2.5 pl-11 pr-4 text-sm outline-none transition focus:border-blue-400 focus:ring-4 focus:ring-blue-100"
                     />
                 </div>
 
                 {/* Cards */}
-                {filteredDms.length === 0 ? (
+                {filteredDms?.length === 0 ? (
                     <div className="rounded-2xl border border-dashed border-slate-200 bg-white p-12 text-center">
                         <p className="text-slate-500">
                             {dms.length === 0
@@ -139,7 +149,7 @@ function DeliveryStaff() {
                     </div>
                 ) : (
                     <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
-                        {filteredDms.map((dm, idx) => (
+                        {filteredDms?.map((dm, idx) => (
                             <div
                                 key={dm.id}
                                 className="group rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-100 transition hover:shadow-md"
@@ -155,24 +165,24 @@ function DeliveryStaff() {
                                             <h2 className="font-semibold text-slate-900">{dm.name}</h2>
                                             <p className="flex items-center gap-1.5 text-sm text-slate-500">
                                                 <Phone size={13} />
-                                                {dm.phone}
+                                                {dm.mobile}
                                             </p>
                                         </div>
                                     </div>
 
                                     <span
-                                        className={`flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium ${
-                                            dm.active
-                                                ? "bg-emerald-50 text-emerald-700"
-                                                : "bg-slate-100 text-slate-500"
-                                        }`}
+                                        // className={`flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium ${
+                                        //     dm.active
+                                        //         ? "bg-emerald-50 text-emerald-700"
+                                        //         : "bg-slate-100 text-slate-500"
+                                        // }`}
                                     >
-                                        <span
+                                        {/* <span
                                             className={`h-1.5 w-1.5 rounded-full ${
                                                 dm.active ? "bg-emerald-500" : "bg-slate-400"
                                             }`}
-                                        />
-                                        {dm.active ? "Active" : "Offline"}
+                                        /> */}
+                                        {/* {dm.active ? "Active" : "Offline"} */}
                                     </span>
                                 </div>
 
@@ -181,7 +191,7 @@ function DeliveryStaff() {
                                         <Truck size={15} />
                                         Assigned customers
                                     </span>
-                                    <span className="text-lg font-bold text-slate-900">{dm.customers}</span>
+                                    {/* <span className="text-lg font-bold text-slate-900">{dm.customers}</span> */}
                                 </div>
 
                                 <div className="mt-4 flex items-center justify-between">

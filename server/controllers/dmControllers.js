@@ -20,9 +20,7 @@ const generatePassword = (length = 10) => {
 
 
 export const createDM = asyncHandler(async (req, res) => {
-
     const { name, mobile, password } = req.body;
-
 
     if (!name || !mobile || mobile.length !== 10) {
         throw new ApiError(
@@ -32,9 +30,7 @@ export const createDM = asyncHandler(async (req, res) => {
         );
     }
 
-
     const existingDM = await User.findOne({ mobile });
-
     if (existingDM) {
         throw new ApiError(
             400,
@@ -42,9 +38,7 @@ export const createDM = asyncHandler(async (req, res) => {
         );
     }
 
-
     const plainPassword = password || generatePassword();
-
 
     const hashedPassword = await bcrypt.hash(
         plainPassword,
@@ -81,7 +75,6 @@ export const createDM = asyncHandler(async (req, res) => {
 
 
 export const getAllDMs = asyncHandler(async(req,res)=>{
-
     const dms = await User
         .find({role:"dm"})
         .select("-password");
