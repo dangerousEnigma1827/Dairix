@@ -12,6 +12,7 @@ import {
     Copy,
     Check,
 } from "lucide-react";
+import { addDm } from "../../../api/Services/DmServices";
 
 type Props = {
     isOpen: boolean;
@@ -33,14 +34,15 @@ const generatePassword = (length = 10) => {
 
 const initialFormState = () => ({
     name: "",
-    phone: "",
+    mobile: "",
     password: generatePassword(),
 });
 
 function AddDMModal({ isOpen, onClose }: Props) {
     const [loading, setLoading] = useState(false);
     const [copied, setCopied] = useState(false);
-    const [errors, setErrors] = useState<{ name?: string; phone?: string }>({});
+    const [errors, setErrors] = useState<{ name?: string; mobile?: string }>({});
+    
     const [formData, setFormData] = useState(initialFormState);
 
     const handleRefreshPassword = () => {
@@ -73,17 +75,17 @@ function AddDMModal({ isOpen, onClose }: Props) {
 
             const payload = {
                 name: formData.name.trim(),
-                phone: formData.phone.trim(),
+                mobile: formData.mobile.trim(),
                 password: formData.password,
             };
 
-            let req=await api.post("/dm", payload);
-
-            toast(`DM created! Password: ${formData.password}`, {
-                style: { background: "#1E88E5", color: "#fff" },
-            });
+            let req = await addDm(payload)
 
             handleClose();
+            toast(`DM created! Password: ${formData.password}`, {
+                style: { background: "#2563EB", color: "#fff" },
+            });
+
         }catch(err:any) {
             console.log("error adding DM", err);
 
@@ -93,11 +95,12 @@ function AddDMModal({ isOpen, onClose }: Props) {
                 });
             } else {
                 toast("Couldn't create DM. Try again.", {
-                    style: { background: "#1E88E5", color: "#fff" },
+                    style: { background: "#2563EB", color: "#fff" },
                 });
             }
         } finally {
             setLoading(false);
+            handleClose()
         }
     };
 
@@ -153,7 +156,7 @@ function AddDMModal({ isOpen, onClose }: Props) {
                                     if (errors.name) setErrors((prev) => ({ ...prev, name: undefined }));
                                 }}
                                 placeholder="Ravi Kumar"
-                                className={`w-full rounded-xl border bg-slate-50 py-2.5 pl-11 pr-4 text-sm outline-none transition focus:border-blue-400 focus:bg-white focus:ring-4 focus:ring-blue-100 ${
+                                className={`w-full rounded-xl border bg-slate-50 py-2.5 pl-11 pr-4 text-sm outline-none transition focus:ring-2 focus:ring-blue-200 ${
                                     errors.name ? "border-red-300" : "border-slate-200"
                                 }`}
                             />
@@ -163,10 +166,10 @@ function AddDMModal({ isOpen, onClose }: Props) {
                         )}
                     </div>
 
-                    {/* Phone */}
+                    {/* mobile */}
                     <div>
                         <label className="mb-1.5 block text-sm font-medium text-slate-700">
-                            Phone number
+                            mobile number
                         </label>
 
                         <div className="relative">
@@ -175,20 +178,20 @@ function AddDMModal({ isOpen, onClose }: Props) {
                                 className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"
                             />
                             <input
-                                value={formData.phone}
+                                value={formData.mobile}
                                 onChange={(e) => {
-                                    setFormData((prev) => ({ ...prev, phone: e.target.value }));
-                                    if (errors.phone) setErrors((prev) => ({ ...prev, phone: undefined }));
+                                    setFormData((prev) => ({ ...prev, mobile: e.target.value }));
+                                    if (errors.mobile) setErrors((prev) => ({ ...prev, mobile: undefined }));
                                 }}
                                 placeholder="9876543210"
                                 inputMode="numeric"
-                                className={`w-full rounded-xl border bg-slate-50 py-2.5 pl-11 pr-4 text-sm outline-none transition focus:border-blue-400 focus:bg-white focus:ring-4 focus:ring-blue-100 ${
-                                    errors.phone ? "border-red-300" : "border-slate-200"
+                                className={`w-full rounded-xl border bg-slate-50 py-2.5 pl-11 pr-4 text-sm outline-none transition focus:ring-2 focus:ring-blue-200 ${
+                                    errors.mobile ? "border-red-300" : "border-slate-200"
                                 }`}
                             />
                         </div>
-                        {errors.phone && (
-                            <p className="mt-1 text-xs text-red-500">{errors.phone}</p>
+                        {errors.mobile && (
+                            <p className="mt-1 text-xs text-red-500">{errors.mobile}</p>
                         )}
                     </div>
 

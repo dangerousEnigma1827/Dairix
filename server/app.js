@@ -28,8 +28,10 @@ app.get("/", (req, res) => {
 
 import authRoutes from "./routes/authRoutes.js"
 import productRoutes from "./routes/productRoutes.js"
+import dmRoutes from "./routes/dmRoutes.js"
 app.use('/api/auth', authRoutes)
 app.use('/api/products', productRoutes)
+app.use('/api/dm', dmRoutes)
 
 // ── 404 + global error handler (must be last) ──────────────────────────────────
 
