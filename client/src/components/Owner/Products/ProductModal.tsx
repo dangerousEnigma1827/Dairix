@@ -31,15 +31,26 @@ function ProductModal({ isOpen, onClose }: Props) {
                 return {...prev, addProductLoading:true}
             })
 
-            let req= await api.post('/products', formData)
+            const payload = {
+                name: formData.name.trim(),
+                price: Number(formData.price),
+                unit: formData.unit.trim(),
+                image: formData.image.trim(),
+            };
+
+            const res = await api.post("/products", payload);
+
             onClose()
-             toast("Added Product Successfully!", {
+
+            toast("Added Product Successfully!", {
                 style: { background: '#1E88E5', color: '#fff' }
             })
+            
             console.log(formData)
         }catch(err:any){
             console.log("error adding a product,", err)
 
+            //need error if existing product also
             if(err?.response?.data?.message=="Validation Error"){
                 toast("Validation Error, Fill All Inputs!", {
                     style: { background: '#1E88E5', color: '#fff' }

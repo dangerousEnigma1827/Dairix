@@ -24,3 +24,11 @@ export const createProduct = asyncHandler(async (req, res) => {
         new ApiResponse(201, product, "Product created successfully")
     );
 });
+
+export const getProducts = asyncHandler(async (req, res) => {
+    const products = await Product.find().sort({ createdAt: -1 });
+
+    return res.status(200).json(
+        new ApiResponse(200, products, "Products fetched successfully")
+    );
+});

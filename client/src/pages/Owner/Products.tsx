@@ -1,42 +1,49 @@
+import { useState, useEffect} from "react";
+
+//icons
 import { Plus } from "lucide-react";
-import { useState } from "react";
-import ProductModal from "../../components/Owner/Products/ProductModal";
+
+//types
 import type { Product } from "../../Types/Products"
+
+//components
+import ProductModal from "../../components/Owner/Products/ProductModal";
 import ProductCard from "../../components/Owner/Products/ProductCard";
+
+//services
+import { getProducts } from "../../api/Services/ProductServices";
 
 function Products() {
 
     const [showModal, setShowModal] = useState(false);
 
-    const products: Product[] = [
-        {
-            id: 1,
-            name: "Fresh Milk",
-            price: 60,
-            stock: 120,
-            unit: "1L",
-            image:
-                "https://images.unsplash.com/photo-1550583724-b2692b85b150?w=500",
-        },
-        {
-            id: 2,
-            name: "Curd",
-            price: 45,
-            stock: 90,
-            unit: "500ml",
-            image:
-                "https://images.unsplash.com/photo-1488477181946-6428a0291777?w=500",
-        },
-        {
-            id: 3,
-            name: "Paneer",
-            price: 240,
-            stock: 50,
-            unit: "1kg",
-            image:
-                "https://images.unsplash.com/photo-1603048297172-c92544798d5a?w=500",
-        },
-    ];
+    const [products, setProducts] = useState<Product[]>([]);
+    const [loading, setLoading] = useState({
+        getAllProductsLoading:false
+    });
+
+    const fetchProducts = async () => {
+        try {
+            setLoading((prev)=>{
+                return {...prev, getAllProductsLoading:true}
+            });
+
+            const data = await getProducts();
+            setProducts(data);
+
+        } catch (err) {
+            console.log("Error fetching products:", err);
+        } finally {
+                setLoading((prev)=>{
+                return {...prev, getAllProductsLoading:false}
+            });
+        }
+    };
+
+    useEffect(() => {
+        fetchProducts();
+    }, [showModal]);
+
 
     return (
         <>
