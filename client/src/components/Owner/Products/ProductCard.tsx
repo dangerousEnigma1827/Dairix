@@ -29,11 +29,6 @@ function ProductCard({ product }: Props) {
                     <span className="text-xl font-bold text-blue-600">
                         ₹{product.price}
                     </span>
-
-                    <span className="rounded-full bg-blue-100 px-3 py-1 text-sm text-blue-700">
-                        Stock: {product.stock}
-                    </span>
-
                 </div>
 
             </div>

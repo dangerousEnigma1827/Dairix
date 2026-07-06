@@ -42,10 +42,12 @@ function ProductModal({ isOpen, onClose }: Props) {
 
             onClose()
 
+            setFormData({name:"",price:"",unit:"",image:""})
+
             toast("Added Product Successfully!", {
                 style: { background: '#1E88E5', color: '#fff' }
             })
-            
+
             console.log(formData)
         }catch(err:any){
             console.log("error adding a product,", err)

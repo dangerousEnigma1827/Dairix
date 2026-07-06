@@ -22,6 +22,7 @@ import DeliveryDashboard from './pages/Dm/DeliveryDashboard'
 import CustomerDashboard from './pages/Customer/CustomerDashboard'
 import Unauthorized from './pages/Unauthorized'
 import LoadingPage from './pages/LoadingPage'
+import DeliveryStaff from './pages/Owner/DeliveryStaff'
 
 
 function App() {
@@ -46,6 +47,7 @@ function App() {
         >
             <Route index element={<OwnerDashboard />} />
             <Route path="products" element={<Products />} />
+            <Route path="delivery-staff" element={<DeliveryStaff />} />
         </Route>
 
         <Route
