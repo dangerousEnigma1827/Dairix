@@ -25,7 +25,6 @@ import LoadingPage from './pages/LoadingPage'
 import DeliveryStaff from './pages/Owner/DeliveryStaff'
 import Deliveries from './pages/Owner/Deliveries'
 import Customers from './pages/Owner/Customers'
-import SignupPage2 from './pages/SignupPage2'
 
 
 function App() {
@@ -35,8 +34,7 @@ function App() {
       <Toaster position="top-right"/>
       <Routes>
         <Route path="/login" element={<Login />} />
-        <Route path="/register" element={<Signup />} />
-        <Route path="/register-page-2" element={<SignupPage2 />} />
+        <Route path="/register" element={<Signup/>} />
         <Route path="/unauthorized" element={<Unauthorized />} />
         <Route path="/loading" element={<LoadingPage />} />
 

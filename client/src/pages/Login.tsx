@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Eye, EyeOff, Lock, Phone } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import api from "../api/api";
+import toast from "react-hot-toast";
 
 function Login() {
   const [showPin, setShowPin] = useState(false);
@@ -19,16 +20,27 @@ function Login() {
         password: formData.password,
       });
 
-      console.log("login success", res.data);
+      toast("Logged In Successfully", {
+          style: { background: "#2563EB", color: "#fff" },
+      });
 
       const user = res.data.data.user;
 
-      if (user.role === "owner") navigate("/owner");
-      else if (user.role === "dm") navigate("/dm");
-      else navigate("/customer");
+      if (user.role === "owner"){
+        navigate("/owner");
+      }
+      else if(user.role === "dm"){
+        navigate("/dm");
+      }
+      else{
+        navigate("/customer");
+      }
+      
     } catch (err:any) {
       console.log("LOGIN ERROR:", err.response?.data);
-      alert(err.response?.data?.message || "Login failed");
+      toast(err.response?.data, {
+          style: { background: "#2563EB", color: "#fff" },
+      });
     }
   };
 

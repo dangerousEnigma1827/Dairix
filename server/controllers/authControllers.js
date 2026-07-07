@@ -6,25 +6,45 @@ import cookieOptions from "../utils/cookieOptions.js";
 import jwt from "jsonwebtoken"
 import bcrypt from 'bcrypt'
 
-// ─────────────────────────────────────────────────────────────────────────────
-// POST /api/auth/signup
-// ─────────────────────────────────────────────────────────────────────────────
-export const signup = asyncHandler(async (req, res) => {
-  const { name, mobile, password, role } = req.body;
 
-  if (!name || !mobile || !password) {
-    throw new ApiError(400, "Name, mobile, and password are required");
-  }
+export const signup = asyncHandler(async (req, res) => {
+  const { 
+    name, 
+    mobile, 
+    password,
+    address,
+    deliveryNotes
+  } = req.body;
+
+  console.log("recieved1")
 
   const existingUser = await User.findOne({ mobile });
-  if (existingUser) {
+
+  console.log("recieved2")
+
+  if (existingUser){
     throw new ApiError(409, "An account with this mobile already exists");
   }
-  
-  const hashedPassword = await bcrypt.hash(password, 10);
-  const user = await User.create({ name, mobile, password:hashedPassword, role });
 
-  const token =  jwt.sign(
+
+  const hashedPassword = await bcrypt.hash(password, 10);
+
+  // console.log("recieved2")
+
+  const user = await User.create({
+    name,
+    mobile,
+    password: hashedPassword,
+
+    role: "customer",
+
+    address,
+    deliveryNotes
+  });
+
+
+
+  const token = jwt.sign(
     {
       _id: user._id,
       mobile: user.mobile,
@@ -34,16 +54,20 @@ export const signup = asyncHandler(async (req, res) => {
     { expiresIn: process.env.JWT_EXPIRES_IN || "7d" }
   );
 
+
   return res
     .status(201)
     .cookie("token", token, cookieOptions)
-    .json(new ApiResponse(201, {user}, "Sign Up Successfull"))
+    .json(
+      new ApiResponse(
+        201,
+        { user },
+        "Signup Successful"
+      )
+    );
 
 });
 
-// ─────────────────────────────────────────────────────────────────────────────
-// POST /api/auth/login
-// ─────────────────────────────────────────────────────────────────────────────
 export const login = asyncHandler(async (req, res) => {
   const { mobile, password } = req.body;
 
@@ -78,9 +102,7 @@ export const login = asyncHandler(async (req, res) => {
     .json(new ApiResponse(200, {user}, "User Logged In Successfully"))
 });
 
-// ─────────────────────────────────────────────────────────────────────────────
-// POST /api/auth/logout
-// ─────────────────────────────────────────────────────────────────────────────
+
 export const logout = asyncHandler(async (_req, res) => {
   res
     .status(200)
@@ -88,9 +110,7 @@ export const logout = asyncHandler(async (_req, res) => {
     .json(new ApiResponse(200, {}, "Logged out successfully"));
 });
 
-// ─────────────────────────────────────────────────────────────────────────────
-// GET /api/auth/me   (protected — needs auth middleware, added in next step)
-// ─────────────────────────────────────────────────────────────────────────────
+
 export const getMe = asyncHandler(async (req, res) => {
   const user = await User.findById(req.user._id);
   if (!user) {
