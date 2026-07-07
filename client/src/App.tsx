@@ -23,6 +23,8 @@ import CustomerDashboard from './pages/Customer/CustomerDashboard'
 import Unauthorized from './pages/Unauthorized'
 import LoadingPage from './pages/LoadingPage'
 import DeliveryStaff from './pages/Owner/DeliveryStaff'
+import Deliveries from './pages/Owner/Deliveries'
+import Customers from './pages/Owner/Customers'
 
 
 function App() {
@@ -48,6 +50,8 @@ function App() {
             <Route index element={<OwnerDashboard />} />
             <Route path="products" element={<Products />} />
             <Route path="delivery-staff" element={<DeliveryStaff />} />
+            <Route path="deliveries" element={<Deliveries />} />
+            <Route path="customers" element={<Customers />} />
         </Route>
 
         <Route
