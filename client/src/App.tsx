@@ -53,7 +53,7 @@ function App() {
             <Route path="delivery-staff" element={<DeliveryStaff />} />
             <Route path="deliveries" element={<Deliveries />} />
             <Route path="customers" element={<Customers />} />
-            <Route path="customers/:customer-id/assign-dm" element={<AssignDM />} />
+            <Route path="customers/:customerId/assign-dm" element={<AssignDM />} />
         </Route>
 
         <Route

@@ -18,7 +18,7 @@ type Address = {
 };
 
 export type Customer = {
-    id: string;
+    _id: string;
     name: string;
     mobile: string;
     address: Address;
@@ -48,6 +48,8 @@ const getInitials = (name: string) =>
 
 
 function CustomerCard({ customer, idx }: CustomerCardProps) {
+console.log(customer)
+
     let navigate=useNavigate()
     return (
         <div className="group rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-100 transition hover:shadow-md">
@@ -186,7 +188,7 @@ function CustomerCard({ customer, idx }: CustomerCardProps) {
 
 
                 <button className="rounded-lg bg-slate-100 px-3.5 py-1.5 text-sm font-medium text-slate-700 transition hover:bg-slate-200" onClick={(e)=>{
-                    navigate('/owner/customers/:customer-id/assign-dm')
+                    navigate(`/owner/customers/${customer._id}/assign-dm`)
                 }}>
 
                     {customer.assignedDm

@@ -27,6 +27,6 @@ router.put("/:id", authenticate, updateCustomer);
 router.delete("/:id", authenticate, deleteCustomer);
 
 // Assign / Change Delivery Staff
-router.patch("/:id/assign-dm", authenticate, assignDeliveryStaff);
+router.post("/:customerId/assign-dm", authenticate, assignDeliveryStaff);
 
 export default router;

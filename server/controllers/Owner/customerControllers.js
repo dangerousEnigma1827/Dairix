@@ -148,10 +148,10 @@ export const deleteCustomer = asyncHandler(async (req, res) => {
 
 // Assign / Change Delivery Staff
 export const assignDeliveryStaff = asyncHandler(async (req, res) => {
-    const { deliveryManId } = req.body;
+    const { selectedDm } = req.body;
 
     const customer = await User.findOne({
-        _id: req.params.id,
+        _id: req.params.customerId,
         role: "customer",
     });
 
@@ -159,11 +159,10 @@ export const assignDeliveryStaff = asyncHandler(async (req, res) => {
         throw new ApiError(404, "Customer not found");
     }
 
-    customer.assignedDM = deliveryManId;
+    customer.assignedDM = selectedDm;
     await customer.save();
 
-    await customer.populate("assignedDM", "name mobile");
-
+    await customer.populate("assignedDM");
     return res.status(200).json(
         new ApiResponse(
             200,
