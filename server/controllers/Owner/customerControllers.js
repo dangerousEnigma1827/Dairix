@@ -9,7 +9,7 @@ export const createCustomer = asyncHandler(async (req, res) => {
         name,
         mobile,
         address,
-        assignedDM,
+        assignedDm,
         products,
         qrCode,
     } = req.body;
@@ -29,7 +29,7 @@ export const createCustomer = asyncHandler(async (req, res) => {
         mobile,
         role: "customer",
         address,
-        assignedDM: assignedDM || null,
+        assignedDm: assignedDm || null,
         products: products || [],
         qrCode: qrCode || "",
     });
@@ -46,7 +46,7 @@ export const createCustomer = asyncHandler(async (req, res) => {
 // Get All Customers
 export const getAllCustomers = asyncHandler(async (req, res) => {
     const customers = await User.find({ role: "customer" })
-        .populate("assignedDM", "name mobile")
+        .populate("assignedDm")
         .sort({ createdAt: -1 })
         .select("-password");
 
@@ -65,7 +65,7 @@ export const getCustomerById = asyncHandler(async (req, res) => {
         _id: req.params.id,
         role: "customer",
     })
-        .populate("assignedDM", "name mobile")
+        .populate("assignedDm", "name mobile")
         .select("-password");
 
     if (!customer) {
@@ -87,7 +87,7 @@ export const updateCustomer = asyncHandler(async (req, res) => {
         name,
         mobile,
         address,
-        assignedDM,
+        assignedDm,
         products,
         qrCode,
     } = req.body;
@@ -101,7 +101,7 @@ export const updateCustomer = asyncHandler(async (req, res) => {
             name,
             mobile,
             address,
-            assignedDM,
+            assignedDm,
             products,
             qrCode,
         },
@@ -110,7 +110,7 @@ export const updateCustomer = asyncHandler(async (req, res) => {
             runValidators: true,
         }
     )
-        .populate("assignedDM", "name mobile")
+        .populate("assignedDm")
         .select("-password");
 
     if (!customer) {
@@ -159,10 +159,10 @@ export const assignDeliveryStaff = asyncHandler(async (req, res) => {
         throw new ApiError(404, "Customer not found");
     }
 
-    customer.assignedDM = selectedDm;
+    customer.assignedDm = selectedDm;
     await customer.save();
 
-    await customer.populate("assignedDM");
+    await customer.populate("assignedDm");
     return res.status(200).json(
         new ApiResponse(
             200,

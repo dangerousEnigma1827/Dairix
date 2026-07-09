@@ -83,7 +83,7 @@ const userSchema = new mongoose.Schema(
             default: "",
         },
 
-        assignedDM: {
+        assignedDm: {
             type: mongoose.Schema.Types.ObjectId,
             ref: "User",
             default: null,

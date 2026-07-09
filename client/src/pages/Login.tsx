@@ -25,9 +25,9 @@ function Login() {
 
       const user = res.data.data.user;
 
-      console.log(user)
+      console.log(user.role)
       if (user.role === "owner"){
-        console.log("navigating")
+        console.log("navigating1")
         navigate("/owner");
         toast("Logged In Successfully", {
           style: { background: "#2563EB", color: "#fff" },

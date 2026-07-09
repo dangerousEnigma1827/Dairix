@@ -9,12 +9,15 @@ export default function ProtectedRoute({
   allowedRoles: string[];
 }) {
   const { user, loading } = useUser();
-
-  if (loading) return <Navigate to="/loading"/>
-
   if (!user) {
     return <Navigate to="/login" />;
   }
+
+  console.log(user)
+
+  console.log(user?.role, " ", allowedRoles.includes(user?.role), " ", allowedRoles)
+
+  if (loading) return <Navigate to="/loading"/>
 
   if (!allowedRoles.includes(user.role)) {
     return <Navigate to="/unauthorized" />;
