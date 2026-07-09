@@ -7,16 +7,27 @@ import {
     Search,
     ArrowUpRight,
     AlertCircle,
-    MapPin,
+    Home,
+    MapPinned,
+    Building2,
+    Map,
     UserCircle2,
 } from "lucide-react";
 import { getAllCustomers } from "../../api/Services/Owner/CustomerServices";
+
+type Address = {
+    houseNo: string;
+    street: string;
+    landmark: string;
+    city: string;
+    pincode: string;
+};
 
 type Customer = {
     id: number;
     name: string;
     mobile: string;
-    address: string;
+    address: Address;
     assignedDm: string | null;
 };
 
@@ -36,54 +47,10 @@ const getInitials = (name: string) =>
         .join("")
         .toUpperCase();
 
-const dummyCustomers: Customer[] = [
-    {
-        id: 1,
-        name: "Anita Sharma",
-        mobile: "9876543210",
-        address: "Sector 5, Main Road",
-        assignedDm: "Ravi Kumar",
-    },
-    {
-        id: 2,
-        name: "Vikram Reddy",
-        mobile: "9845012345",
-        address: "Plot 12, Green Avenue",
-        assignedDm: null,
-    },
-    {
-        id: 3,
-        name: "Priya Desai",
-        mobile: "9900112233",
-        address: "Flat 302, Lake View Apartments",
-        assignedDm: "Suresh Yadav",
-    },
-    {
-        id: 4,
-        name: "Karthik Nair",
-        mobile: "9765432109",
-        address: "House 21, Nehru Colony",
-        assignedDm: null,
-    },
-    {
-        id: 5,
-        name: "Meera Iyer",
-        mobile: "9812345678",
-        address: "Sector 9, Church Road",
-        assignedDm: "Ravi Kumar",
-    },
-    {
-        id: 6,
-        name: "Arjun Menon",
-        mobile: "9988776655",
-        address: "Plot 45, Industrial Layout",
-        assignedDm: "Dinesh Rao",
-    },
-];
 
 function Customers() {
     const [search, setSearch] = useState("");
-    const [customers] = useState<Customer[]>(dummyCustomers);
+    const [customers, setCustomers] = useState<Customer[]>([])
 
     const filteredCustomers = customers.filter(
         (customer) =>
@@ -100,7 +67,7 @@ function Customers() {
         try{
             console.log("first")
             let req=await getAllCustomers();
-            console.log(req)
+            setCustomers(req)
         }catch(err){
             console.log("error getting all customers ", err);
         }
@@ -239,9 +206,36 @@ function Customers() {
                                 </div>
 
                                 {/* Address */}
-                                <div className="mt-3 flex items-start gap-2 px-1 text-sm text-slate-500">
-                                    <MapPin size={15} className="mt-0.5 shrink-0" />
-                                    <span className="line-clamp-2">{customer.address}</span>
+                                <div className="mt-4 rounded-xl border border-slate-100 bg-slate-50 p-4">
+                                    <p className="mb-3 text-xs font-medium uppercase tracking-wide text-slate-400">
+                                        Address
+                                    </p>
+
+                                    <div className="space-y-2 text-sm text-slate-600">
+                                        <div className="flex items-center gap-2">
+                                            <Home size={15} className="text-blue-600 shrink-0" />
+                                            <span>{customer.address.houseNo || "-"}</span>
+                                        </div>
+
+                                        <div className="flex items-center gap-2">
+                                            <MapPinned size={15} className="text-emerald-600 shrink-0" />
+                                            <span>{customer.address.street || "-"}</span>
+                                        </div>
+
+                                        <div className="flex items-center gap-2">
+                                            <Building2 size={15} className="text-amber-600 shrink-0" />
+                                            <span>{customer.address.landmark || "-"}</span>
+                                        </div>
+
+                                        <div className="flex items-center gap-2">
+                                            <Map size={15} className="text-violet-600 shrink-0" />
+                                            <span>
+                                                {customer.address.city || "-"}{" "}
+                                                {customer.address.pincode &&
+                                                    `- ${customer.address.pincode}`}
+                                            </span>
+                                        </div>
+                                    </div>
                                 </div>
 
                                 {/* Bottom actions */}
