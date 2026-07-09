@@ -1,8 +1,9 @@
-import { MapPin, Home, Building2, Navigation, ArrowLeft, Check } from "lucide-react";
+import { MapPin, Home, Building2, Navigation, ArrowLeft, Check, Loader2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import api from "../api/api";
 import toast from "react-hot-toast";
 import { registerService } from "../api/Services/AuthServices";
+import { useState } from "react";
 
 type formDataType = {
     name: string;
@@ -37,6 +38,7 @@ function SignupPage2({
 }: SignupPage2Props) {
 
     const navigate = useNavigate();
+    const [loading, setLoading]=useState(false);
 
     const updateAddress = (
         field: keyof formDataType["address"],
@@ -83,6 +85,8 @@ function SignupPage2({
             return;
         }
 
+        setLoading(true)
+
         try{
             let req = await registerService(formData);
 
@@ -102,7 +106,8 @@ function SignupPage2({
                 });
 
             }
-
+        }finally{
+            setLoading(false)
         }
         
     }
@@ -252,8 +257,10 @@ function SignupPage2({
                                     hover:bg-blue-700 transition
                                     "
                                 >
-                                    Create
-                                    <Check size={18}/>
+                                    {
+                                        !loading ? 
+                                        "Create"+ <Check size={18}/> : <Loader2/>
+                                    }
                                 </button>
 
 

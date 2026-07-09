@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
     Plus,
     Phone,
@@ -10,6 +10,7 @@ import {
     MapPin,
     UserCircle2,
 } from "lucide-react";
+import { getAllCustomers } from "../../api/Services/Owner/CustomerServices";
 
 type Customer = {
     id: number;
@@ -93,6 +94,22 @@ function Customers() {
     const totalCustomers = customers.length;
     const assignedCount = customers.filter((c) => c.assignedDm).length;
     const unassignedCount = totalCustomers - assignedCount;
+
+    //api calls
+    const handleGetAllCustomers = async () => {
+        try{
+            console.log("first")
+            let req=await getAllCustomers();
+            console.log(req)
+        }catch(err){
+            console.log("error getting all customers ", err);
+        }
+    }
+
+
+    useEffect(()=>{
+        handleGetAllCustomers()
+    },[])
 
     return (
         <div className="min-h-screen bg-slate-50 p-6 md:p-8">

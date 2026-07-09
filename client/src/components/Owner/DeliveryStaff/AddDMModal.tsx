@@ -12,7 +12,7 @@ import {
     Copy,
     Check,
 } from "lucide-react";
-import { addDm } from "../../../api/Services/DmServices";
+import { addDm } from "../../../api/Services/Owner/DmServices";
 
 type Props = {
     isOpen: boolean;

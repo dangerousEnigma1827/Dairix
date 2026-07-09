@@ -4,12 +4,13 @@ import {
     getProducts,
     // updateProduct,
     // deleteProduct,
-} from "../controllers/productControllers.js";
+} from "../../controllers/Owner/productControllers.js"
 
-import productSchema from "../schemas/productSchema.js"
-import validate from "../middlewares/validateMiddlewares.js";
+import productSchema from "../../schemas/productSchema.js"
+import validate from "../../middlewares/validateMiddlewares.js";
 
 const router = express.Router();
+
 
 router.post("/", validate(productSchema), createProduct);
 router.get("/", getProducts);

@@ -11,7 +11,7 @@ import ProductModal from "../../components/Owner/Products/ProductModal";
 import ProductCard from "../../components/Owner/Products/ProductCard";
 
 //services
-import { getProducts } from "../../api/Services/ProductServices";
+import { getProducts } from "../../api/Services/Owner/ProductServices";
 
 function Products() {
 

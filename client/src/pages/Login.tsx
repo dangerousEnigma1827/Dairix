@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Eye, EyeOff, Lock, Phone } from "lucide-react";
+import { Eye, EyeOff, Loader2, Lock, Phone } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import api from "../api/api";
 import toast from "react-hot-toast";
@@ -13,27 +13,37 @@ function Login() {
     password: "",
   });
 
+  const [loading, setLoading]=useState(false);
+
   const handleLogin = async () => {
+    setLoading(true)
     try {
       const res = await api.post("/auth/login", {
         mobile: formData.mobile,
         password: formData.password,
       });
 
-      toast("Logged In Successfully", {
-          style: { background: "#2563EB", color: "#fff" },
-      });
-
       const user = res.data.data.user;
 
+      console.log(user)
       if (user.role === "owner"){
+        console.log("navigating")
         navigate("/owner");
+        toast("Logged In Successfully", {
+          style: { background: "#2563EB", color: "#fff" },
+        });
       }
       else if(user.role === "dm"){
         navigate("/dm");
+        toast("Logged In Successfully", {
+          style: { background: "#2563EB", color: "#fff" },
+        });
       }
       else{
         navigate("/customer");
+        toast("Logged In Successfully", {
+          style: { background: "#2563EB", color: "#fff" },
+        });
       }
       
     } catch (err:any) {
@@ -41,6 +51,8 @@ function Login() {
       toast(err.response?.data, {
           style: { background: "#2563EB", color: "#fff" },
       });
+    }finally{
+      setLoading(false);
     }
   };
 
@@ -123,9 +135,9 @@ function Login() {
               {/* BUTTON */}
               <button
                 onClick={handleLogin}
-                className="w-full rounded-lg bg-blue-600 py-3 font-semibold text-white transition hover:bg-blue-700"
+                className="w-full rounded-lg bg-blue-600 py-3 font-semibold text-white transition flex justify-center items-center hover:bg-blue-700"
               >
-                Sign In
+                {!loading ? "Sign In" : <Loader2/>}
               </button>
 
               {/* NAV */}

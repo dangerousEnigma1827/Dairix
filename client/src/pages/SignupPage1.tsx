@@ -33,6 +33,7 @@ function SignupPage1({step, setStep, formData, setFormData}:SignupPage1Props) {
     const [showPassword, setShowPassword] = useState(false);
     const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
+
     const navigate=useNavigate()
 
     const validate = async () => {

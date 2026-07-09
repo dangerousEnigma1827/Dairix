@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Plus, Phone, Users, Truck, Search, ArrowUpRight } from "lucide-react";
 import AddDMModal from "../../components/Owner/DeliveryStaff/AddDMModal";
-import { getAllDms } from "../../api/Services/DmServices";
+import { getAllDms } from "../../api/Services/Owner/DmServices";
 
 type DM = {
     id: number;

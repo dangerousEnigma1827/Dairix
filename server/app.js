@@ -16,28 +16,28 @@ app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser())
 
 
-
 app.get("/api/health", (req, res) => {
   res.json({ status: "ok", project: "Dairix", timestamp: new Date().toISOString() });
 });
 
 app.get("/", (req, res) => {
-  // res.json({ status: "ok", project: "Dairix", timestamp: new Date().toISOString() });
+  res.json({ status: "ok", project: "Dairix", timestamp: new Date().toISOString() });
 });
 
-// ── Routes (mount here as you build them) ─────────────────────────────────────
-// import authRoutes from "./routes/auth.routes.js";
-// app.use("/api/auth", authRoutes);
-
+//routes import
 import authRoutes from "./routes/authRoutes.js"
-import productRoutes from "./routes/productRoutes.js"
-import dmRoutes from "./routes/dmRoutes.js"
+import productRoutes from "./routes/Owner/productRoutes.js"
+import dmRoutes from "./routes/Owner/dmRoutes.js"
+import customerRoutes from "./routes/Owner/customerRoutes.js"
+
+
 app.use('/api/auth', authRoutes)
 app.use('/api/products', productRoutes)
 app.use('/api/dm', dmRoutes)
+app.use('/api/customers', customerRoutes)
 
 
+//404 + global error handler
 app.use(errorMiddlewares)
-// ── 404 + global error handler (must be last) ──────────────────────────────────
 
 export default app;

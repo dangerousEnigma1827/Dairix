@@ -5,9 +5,9 @@ import {
     getDMById,
     updateDM,
     deleteDM
-} from "../controllers/dmControllers.js";
-import validate from "../middlewares/validateMiddlewares.js";
-import createDMSchema from "../schemas/dmSchemas.js";
+} from "../../controllers/Owner/dmControllers.js"
+import validate from "../../middlewares/validateMiddlewares.js";
+import createDMSchema from "../../schemas/dmSchemas.js";
 
 
 const router = express.Router();
