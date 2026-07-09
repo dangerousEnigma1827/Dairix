@@ -5,17 +5,22 @@ import {
     Truck,
     Search,
     AlertCircle,
+    Loader2,
 } from "lucide-react";
 
 import { getAllCustomers } from "../../api/Services/Owner/CustomerServices";
 import CustomerCard from "../../components/Owner/Customers/CustomerCard";
 import type { Customer } from "../../components/Owner/Customers/CustomerCard";
+import Spinner from "../../components/Spinner";
 
 
 
 function Customers() {
     const [search, setSearch] = useState("");
     const [customers, setCustomers] = useState<Customer[]>([]);
+    const [loading, setLoading] = useState({
+        getCustomers:false
+    })
 
     const filteredCustomers = customers.filter(
         (customer) =>
@@ -34,6 +39,10 @@ function Customers() {
     const unassignedCount = totalCustomers - assignedCount;
 
     const handleGetAllCustomers = async () => {
+        setLoading((prev)=>{
+            return {...prev, getCustomers:true}
+        })
+
         try {
             const req = await getAllCustomers();
             console.log(req);
@@ -43,16 +52,16 @@ function Customers() {
                 "error getting all customers ",
                 err
             );
+        }finally{
+            setLoading((prev)=>{
+                return {...prev, getCustomers:false}
+            })
         }
     };
-
-
 
     useEffect(() => {
         handleGetAllCustomers();
     }, []);
-
-
 
     return (
         <div className="min-h-screen bg-slate-50 p-6 md:p-8">
@@ -127,9 +136,20 @@ function Customers() {
                         className="w-full rounded-xl border border-slate-200 bg-white py-2.5 pl-11 pr-4 text-sm outline-none transition focus:border-blue-400 focus:ring-4 focus:ring-blue-100"
                     />
                 </div>
+
+                {
+                    loading.getCustomers && 
+                    <div className="rounded-2xl border border-dashed border-slate-200 flex gap-10 justify-center flex flex-col items-center bg-white p-12 text-center">
+                        <p className="text-slate-500">
+                            Fetching Customers...
+                        </p>
+                        <Spinner/>
+                    </div>
+                }
+
                 {/* Customer Cards */}
                 {
-                    filteredCustomers.length === 0 ? (
+                    (filteredCustomers.length === 0) && (loading.getCustomers == false) ? (
                         <div className="rounded-2xl border border-dashed border-slate-200 bg-white p-12 text-center">
                             {
                                 customers.length === 0 ? (
@@ -165,6 +185,8 @@ function Customers() {
                         </div>
                     )
                 }
+
+
             </div>
 
 

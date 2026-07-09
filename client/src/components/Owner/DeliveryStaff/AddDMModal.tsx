@@ -17,6 +17,7 @@ import { addDm } from "../../../api/Services/Owner/DmServices";
 type Props = {
     isOpen: boolean;
     onClose: () => void;
+    handleGetDms : () => Promise<void>
 };
 
 const generatePassword = (length = 10) => {
@@ -38,7 +39,7 @@ const initialFormState = () => ({
     password: generatePassword(),
 });
 
-function AddDMModal({ isOpen, onClose }: Props) {
+function AddDMModal({ isOpen, onClose, handleGetDms }: Props) {
     const [loading, setLoading] = useState(false);
     const [copied, setCopied] = useState(false);
     const [errors, setErrors] = useState<{ name?: string; mobile?: string }>({});
@@ -82,6 +83,7 @@ function AddDMModal({ isOpen, onClose }: Props) {
             let req = await addDm(payload)
 
             handleClose();
+            handleGetDms()
             toast(`DM created! Password: ${formData.password}`, {
                 style: { background: "#2563EB", color: "#fff" },
             });
@@ -258,7 +260,10 @@ function AddDMModal({ isOpen, onClose }: Props) {
                     </button>
 
                     <button
-                        onClick={handleAddDM}
+                        onClick={(e)=>{
+                            handleAddDM()
+                            handleGetDms()
+                        }}
                         disabled={loading}
                         className="flex min-w-[110px] items-center justify-center gap-2 rounded-xl bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-70"
                     >

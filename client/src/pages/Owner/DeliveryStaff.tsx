@@ -39,7 +39,6 @@ function DeliveryStaff() {
         }catch(err:any){
             console.log("error occured handling all ds", err)
         }
-        
     }
 
     const handleDMAdded = (newDM: { name: string; mobile: string }) => {
@@ -72,7 +71,7 @@ function DeliveryStaff() {
         <div className="min-h-screen bg-slate-50 p-6 md:p-8">
             <div className="mx-auto max-w-6xl space-y-8">
 
-                <AddDMModal isOpen={showModal} onClose={() => setShowModal(false)} />
+                <AddDMModal isOpen={showModal} handleGetDms={handleGetDms} onClose={() => setShowModal(false)} />
 
                 {/* Header */}
                 <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -86,7 +85,10 @@ function DeliveryStaff() {
                     </div>
 
                     <button
-                        onClick={() => setShowModal(true)}
+                        onClick={() => {
+                            setShowModal(true)
+                            
+                        }}
                         className="flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700"
                     >
                         <Plus size={18} />

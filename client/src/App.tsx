@@ -25,6 +25,7 @@ import LoadingPage from './pages/LoadingPage'
 import DeliveryStaff from './pages/Owner/DeliveryStaff'
 import Deliveries from './pages/Owner/Deliveries'
 import Customers from './pages/Owner/Customers'
+import AssignDM from './pages/Owner/AssignDM'
 
 
 function App() {
@@ -52,6 +53,7 @@ function App() {
             <Route path="delivery-staff" element={<DeliveryStaff />} />
             <Route path="deliveries" element={<Deliveries />} />
             <Route path="customers" element={<Customers />} />
+            <Route path="customers/:customer-id/assign-dm" element={<AssignDM />} />
         </Route>
 
         <Route
