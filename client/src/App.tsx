@@ -28,6 +28,7 @@ import Customers from './pages/Owner/Customers'
 import AssignDM from './pages/Owner/AssignDM'
 import DMDetails from './pages/Owner/DeliveryStaff/DMDetails'
 import CustomerSubscriptions from './pages/Customer/CustomerSubscriptions'
+import CustomerQRPage from './pages/Customer/CustomerQRPage'
 
 
 function App() {
@@ -45,9 +46,9 @@ function App() {
         <Route
           path="/owner"
           element={
-            <ProtectedRoute allowedRoles={["owner"]}>
+            // <ProtectedRoute allowedRoles={["owner"]}>
               <OwnerLayout />
-            </ProtectedRoute>
+            // </ProtectedRoute>
           }
         >
             <Route index element={<OwnerDashboard />} />
@@ -82,9 +83,15 @@ function App() {
         <Route
           path="/customer/products"
           element={
-            // <ProtectedRoute allowedRoles={["customer"]}>
               <CustomerSubscriptions />
-            // </ProtectedRoute>
+          }
+        >
+        </Route>
+
+        <Route
+          path="/customer/qrcode"
+          element={
+              <CustomerQRPage />
           }
         >
         </Route>

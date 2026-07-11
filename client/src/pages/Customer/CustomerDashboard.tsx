@@ -200,7 +200,7 @@ export default function CustomerDashboard() {
             <div className="bg-blue-600 p-1.5 rounded-lg">
               <Milk size={16} className="text-white" />
             </div>
-            <span className="font-bold text-slate-900 text-sm">My Dairy</span>
+            <span className="font-bold text-slate-900 text-sm">Dairix</span>
           </div>
           <div className="flex items-center gap-1">
             <button className="relative p-2 rounded-xl hover:bg-slate-100 text-slate-500 transition-colors">
@@ -348,7 +348,7 @@ export default function CustomerDashboard() {
             </button>
 
             <button
-              onClick={() => navigate("/customer/qr")}
+              onClick={() => navigate("/customer/qrcode")}
               className="bg-white rounded-2xl shadow-sm ring-1 ring-slate-100 p-4 flex flex-col gap-3 text-left active:scale-95 transition-transform hover:ring-blue-200"
             >
               <div className="bg-violet-50 w-10 h-10 rounded-xl flex items-center justify-center">
@@ -408,53 +408,61 @@ export default function CustomerDashboard() {
                 </button>
               </div>
 
-              {customer.products.map((sub, i) => (
-                <div key={i} className="flex items-center gap-3">
-                  <div className="bg-blue-50 p-2 rounded-xl">
-                    <Droplets size={18} className="text-blue-600" />
+              <div className="flex flex-col gap-5">
+                {customer.products.map((sub, i) => (
+                  <div key={i} className="flex items-center gap-3">
+                    <div className="bg-blue-50 p-2 rounded-xl">
+                      <div className="rounded-xl w-11 h-11 flex items-center justify-center background-none shrink-0">
+                          { !sub.image ? 
+                            <Milk/> : 
+                            <img src={sub.image} alt="" className="w-11 h-11 rounded-xl flex shrink-0"/>
+                          }
+                        </div>
+                    </div>
+
+                    <div className="flex-1">
+                      <p className="text-sm font-semibold text-slate-800">
+                        {sub.name}
+                      </p>
+
+                      <p className="text-xs text-slate-500">
+                        {sub.quantity} L/day · ₹{sub.price}/L
+                      </p>
+                    </div>
+
+                    <div className="text-right">
+                      <p className="text-sm font-bold text-slate-900">
+                        ₹{(sub.quantity * sub.price * 30).toLocaleString("en-IN")}
+                      </p>
+                      <p className="text-xs text-slate-400">/month</p>
+                    </div>
                   </div>
-
-                  <div className="flex-1">
-                    <p className="text-sm font-semibold text-slate-800">
-                      {sub.name}
-                    </p>
-
-                    <p className="text-xs text-slate-500">
-                      {sub.quantity} L/day · ₹{sub.price}/L
-                    </p>
-                  </div>
-
-                  <div className="text-right">
-                    <p className="text-sm font-bold text-slate-900">
-                      ₹{(sub.quantity * sub.price * 30).toLocaleString("en-IN")}
-                    </p>
-                    <p className="text-xs text-slate-400">/month</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-            ) : (
-              <div className="bg-white rounded-2xl shadow-sm ring-1 ring-slate-100 p-5 text-center">
-                <div className="bg-blue-50 w-12 h-12 rounded-xl flex items-center justify-center mx-auto mb-3">
-                  <Droplets size={24} className="text-blue-600" />
-                </div>
-
-                <p className="font-semibold text-slate-800">
-                  No active subscriptions
-                </p>
-
-                <p className="text-sm text-slate-500 mt-1">
-                  Add milk products to start your daily delivery.
-                </p>
-
-                <button
-                  onClick={() => navigate("/customer/products")}
-                  className="mt-4 bg-blue-600 text-white px-4 py-2 rounded-xl text-sm font-semibold hover:bg-blue-700 transition-colors"
-                >
-                  Add Subscription
-                </button>
+                ))}
               </div>
-            )}
+            </div>
+
+          ) : (
+            <div className="bg-white rounded-2xl shadow-sm ring-1 ring-slate-100 p-5 text-center">
+              <div className="bg-blue-50 w-12 h-12 rounded-xl flex items-center justify-center mx-auto mb-3">
+                <Droplets size={24} className="text-blue-600" />
+              </div>
+
+              <p className="font-semibold text-slate-800">
+                No active subscriptions
+              </p>
+
+              <p className="text-sm text-slate-500 mt-1">
+                Add dairy products to start your daily delivery.
+              </p>
+
+              <button
+                onClick={() => navigate("/customer/products")}
+                className="mt-4 bg-blue-600 text-white px-4 py-2 rounded-xl text-sm font-semibold hover:bg-blue-700 transition-colors"
+              >
+                Add Subscription
+              </button>
+            </div>
+          )}
                       
          
           {customer.assignedDm && (

@@ -237,7 +237,7 @@ export default function CustomerSubscriptions() {
           </button>
           <div className="flex-1">
             <h1 className="font-bold text-slate-900 text-sm leading-tight">
-              My Products
+              Dairix
             </h1>
             <p className="text-xs text-slate-400">Manage daily subscriptions</p>
           </div>
@@ -321,7 +321,6 @@ export default function CustomerSubscriptions() {
                             <Milk/> : 
                             <img src={product.image} alt="" className="w-11 h-11 rounded-xl flex shrink-0"/>
                           }
-
                         </div>
                         <div className="flex-1 min-w-0">
                           <p className="font-semibold text-slate-900 text-sm">
