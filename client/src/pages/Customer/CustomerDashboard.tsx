@@ -22,6 +22,7 @@ import { useEffect, useState } from "react";
 import type { AddressType } from "../../Types/Customer";
 import LoadingPage from "../LoadingPage";
 import LoadingPageNoReturn from "../LoadingPageNoReturn";
+import { avatarPalette, getInitials } from "../../utils/AvatarPalletesAndGetInitials";
 
 
 type DailyStatus = "delivered" | "skipped" | "paused" | "pending";
@@ -471,13 +472,9 @@ export default function CustomerDashboard() {
                 Your Delivery Person
               </p>
               <div className="flex items-center gap-3">
-                <div className="bg-blue-600 rounded-full w-10 h-10 flex items-center justify-center shrink-0">
-                  <span className="text-white text-sm font-bold">
-                    {customer.assignedDm.name
-                      .split(" ")
-                      .map((n) => n[0])
-                      .join("")
-                      .slice(0, 2)}
+                <div className={`${avatarPalette[Math.floor(Math.random()*6)-1]} rounded-full w-10 h-10 flex items-center justify-center shrink-0`}>
+                  <span className="text-sm font-bold rounded-full">
+                    {getInitials(customer.assignedDm.name)}
                   </span>
                 </div>
                 <div className="flex-1">

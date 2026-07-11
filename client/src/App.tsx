@@ -63,9 +63,9 @@ function App() {
         <Route
           path="/dm"
           element={
-            <ProtectedRoute allowedRoles={["dm"]}>
+            // <ProtectedRoute allowedRoles={["dm"]}>
               <DeliveryDashboard />
-            </ProtectedRoute>
+            // </ProtectedRoute>
           }
         />
 
