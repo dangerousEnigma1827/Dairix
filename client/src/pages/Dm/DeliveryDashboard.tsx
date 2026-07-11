@@ -19,6 +19,10 @@ import {
   Loader2,
 } from "lucide-react";
 
+
+//utils
+import { formatTime } from "../../utils/formatTime";
+import { avatarPalette, getInitials } from "../../utils/AvatarPalletesAndGetInitials";
 // ── Replace these with your actual service imports ────────────────────────────
 // import { currDmService } from "../../api/Services/AuthServices";
 // import { getDmTodayDeliveriesService } from "../../api/Services/DM/DeliveryServices";
@@ -117,33 +121,6 @@ const MOCK_DELIVERIES: DeliveryItem[] = [
   },
 ];
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
-
-const avatarPalette = [
-  "bg-blue-100 text-blue-700",
-  "bg-violet-100 text-violet-700",
-  "bg-emerald-100 text-emerald-700",
-  "bg-amber-100 text-amber-700",
-  "bg-rose-100 text-rose-700",
-];
-
-function getInitials(name: string) {
-  return name
-    .split(" ")
-    .map((p) => p[0])
-    .slice(0, 2)
-    .join("")
-    .toUpperCase();
-}
-
-function formatTime(iso?: string) {
-  if (!iso) return "";
-  return new Date(iso).toLocaleTimeString("en-IN", {
-    hour: "2-digit",
-    minute: "2-digit",
-    hour12: true,
-  });
-}
 
 const statusConfig: Record<
   DeliveryStatus,

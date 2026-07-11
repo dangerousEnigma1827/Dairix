@@ -29,6 +29,7 @@ import AssignDM from './pages/Owner/AssignDM'
 import DMDetails from './pages/Owner/DeliveryStaff/DMDetails'
 import CustomerSubscriptions from './pages/Customer/CustomerSubscriptions'
 import CustomerQRPage from './pages/Customer/CustomerQRPage'
+import DMScanDeliver from './pages/Dm/DmScanDeliver'
 
 
 function App() {
@@ -68,6 +69,22 @@ function App() {
             // </ProtectedRoute>
           }
         />
+
+        <Route
+          path="/dm/scan"
+          element={
+            // <ProtectedRoute allowedRoles={["dm"]}>
+              <DMScanDeliver/>
+            // </ProtectedRoute>
+          }
+        />
+
+
+
+
+
+
+
 
         <Route
           path="/customer"
