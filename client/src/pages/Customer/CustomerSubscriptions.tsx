@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   ArrowLeft,
@@ -10,68 +10,49 @@ import {
   Info,
   ChevronRight,
   AlertCircle,
+  Milk,
 } from "lucide-react";
+import LoadingPageNoReturn from "../LoadingPageNoReturn";
 
-// ── Types ────────────────────────────────────────────────────────────────────
+//services
+import { currUserService } from "../../api/Services/AuthServices";
+import type { CustomerTypeExport } from "../../Types/Customer";
+import { getProducts } from "../../api/Services/Owner/ProductServices";
 
+
+//types
 type Product = {
-  id: string;
+  _id: string;
   name: string;
-  pricePerUnit: number;
+  price: number;
   unit: "L";
-  icon: string;
-  description: string;
+  image: string;
 };
+
+type CustomerType = CustomerTypeExport
 
 type Subscription = {
-  id: string;
-  productId: string;
-  quantity: number; // litres per day
+  _id: string;
+  name: string;
+  price: number;
+  unit: "L";
+  image: string;
+  quantity:number
 };
 
-// ── Mock data — replace with API ─────────────────────────────────────────────
-
-const ALL_PRODUCTS: Product[] = [
-  {
-    id: "prod_001",
-    name: "Cow Milk",
-    pricePerUnit: 60,
-    unit: "L",
-    icon: "🐄",
-    description: "Fresh cow milk, delivered daily",
-  },
-  {
-    id: "prod_002",
-    name: "Buffalo Milk",
-    pricePerUnit: 75,
-    unit: "L",
-    icon: "🐃",
-    description: "Rich & creamy buffalo milk",
-  },
-  {
-    id: "prod_003",
-    name: "Organic Milk",
-    pricePerUnit: 90,
-    unit: "L",
-    icon: "🌿",
-    description: "Certified organic, no additives",
-  },
-];
-
 const INITIAL_SUBS: Subscription[] = [
-  { id: "sub_001", productId: "prod_001", quantity: 2 },
+  // { _id: "sub_001", _id: "prod_001", quantity: 2 },
 ];
 
-// ── Helpers ──────────────────────────────────────────────────────────────────
 
+// Helpers
 const QTY_STEPS = [0.5, 1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5];
-
 function monthlyEst(qty: number, price: number) {
   return qty * price * 30;
 }
 
-// ── Sub-components ───────────────────────────────────────────────────────────
 
+// Sub-components
 function QtyControl({
   value,
   onChange,
@@ -105,45 +86,67 @@ function QtyControl({
   );
 }
 
-// ── Main page ─────────────────────────────────────────────────────────────────
 
+// Main Pagw
 export default function CustomerSubscriptions() {
   const navigate = useNavigate();
 
-  const [subs, setSubs] = useState<Subscription[]>(INITIAL_SUBS);
+  const [subs, setSubs] = useState<Subscription[]>([]);
+  const [allProducts, setAllProducts] = useState<Product[]>([]);
+
+
   const [addingId, setAddingId] = useState<string | null>(null);
   const [newQty, setNewQty] = useState(1);
   const [saved, setSaved] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
 
-  const subscribedIds = subs.map((s) => s.productId);
-  const availableToAdd = ALL_PRODUCTS.filter((p) => !subscribedIds.includes(p.id));
-  const totalDaily = subs.reduce((a, s) => a + s.quantity, 0);
-  const totalMonthly = subs.reduce((a, s) => {
-    const p = ALL_PRODUCTS.find((p) => p.id === s.productId)!;
-    return a + monthlyEst(s.quantity, p.pricePerUnit);
+  const subscribedIds = subs.map((s) => s._id);
+  const availableToAdd = allProducts.filter((p) => !subscribedIds.includes(p._id));
+
+
+  //daily cost
+  const totalDaily = subs.reduce((a, s) => a + (s.price)*(s.quantity), 0);
+
+  //montly cost
+  const totalMonthly = subs.reduce((accumulator, s) => {
+    const p = allProducts.find((p) => p._id === s._id)!;
+    return accumulator + monthlyEst(s.quantity, p.price);
   }, 0);
 
   const hasChanges =
     JSON.stringify(subs) !== JSON.stringify(INITIAL_SUBS);
 
+
+  //update sub qty
   const updateQty = (subId: string, qty: number) => {
-    setSubs((prev) => prev.map((s) => (s.id === subId ? { ...s, quantity: qty } : s)));
+    setSubs((prev) => prev.map((s) => (s._id === subId ? { ...s, quantity: qty } : s)));
     setSaved(false);
   };
 
+
+  //remove sub
   const removeSub = (subId: string) => {
-    setSubs((prev) => prev.filter((s) => s.id !== subId));
+    setSubs((prev) => prev.filter((s) => s._id !== subId));
     setDeleteConfirm(null);
     setSaved(false);
   };
 
-  const confirmAdd = () => {
+  //add sub
+  const confirmAdd = (productToAdd : Product) => {
     if (!addingId) return;
-    setSubs((prev) => [
-      ...prev,
-      { id: `sub_${Date.now()}`, productId: addingId, quantity: newQty },
-    ]);
+    setSubs((prev) => {
+      return [...prev, {
+        _id: addingId,
+        name: productToAdd.name,
+        price: productToAdd.price,
+        unit: productToAdd.unit,
+        image: productToAdd.image,
+        quantity:newQty
+      }]
+    });
+
+    console.log("added to subs ")
+
     setAddingId(null);
     setNewQty(1);
     setSaved(false);
@@ -154,6 +157,63 @@ export default function CustomerSubscriptions() {
     setSaved(true);
     setTimeout(() => setSaved(false), 2500);
   };
+
+
+
+  const [customer, setCustomer]=useState<CustomerType|null>(null)
+  const [loading, setLoading] = useState({
+    customerLoading:false,
+    allProductsLoading:false
+  })
+  
+  //api calls
+  const handleGetCurrentUser = async () =>{
+    setLoading((prev)=>{
+      return {...prev, customerLoading:true}
+    })
+
+    try{
+      let req = await currUserService()
+      setCustomer(req.user)
+      setSubs(req.user.products)
+    }catch(err:any){
+      console.log("error getting customer details",err)
+    }finally{
+      setLoading((prev)=>{
+        return {...prev, customerLoading:false}
+      })
+    }
+  }
+
+  
+  const hadleGetAllProducts = async () =>{
+    setLoading((prev)=>{
+      return {...prev, allProductsLoading:true}
+    })
+
+    try{
+      let req = await getProducts()
+      setAllProducts(req)
+    }catch(err:any){
+      console.log("error getting all products details",err)
+    }finally{
+      setLoading((prev)=>{
+        return {...prev, allProductsLoading:false}
+      })
+    }
+  }
+
+
+  //effects
+  useEffect(()=>{
+    handleGetCurrentUser()
+    hadleGetAllProducts()
+  },[])
+
+ 
+  if(loading.customerLoading || !customer){
+    return <LoadingPageNoReturn/>
+  }
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col">
@@ -173,6 +233,8 @@ export default function CustomerSubscriptions() {
             </h1>
             <p className="text-xs text-slate-400">Manage daily subscriptions</p>
           </div>
+
+
           {hasChanges && (
             <button
               onClick={handleSave}
@@ -186,6 +248,8 @@ export default function CustomerSubscriptions() {
               {saved ? "Saved" : "Save"}
             </button>
           )}
+
+
         </div>
       </header>
 
@@ -200,7 +264,7 @@ export default function CustomerSubscriptions() {
                 ₹{totalMonthly.toLocaleString("en-IN")}
               </p>
               <p className="text-blue-200 text-xs mt-1">
-                {subs.length} product{subs.length !== 1 ? "s" : ""} · {totalDaily} L/day
+                {subs.length} product{subs.length !== 1 ? "s" : ""} · {totalDaily} /- Per Day
               </p>
             </div>
             <div className="bg-white/15 rounded-full p-3">
@@ -233,31 +297,36 @@ export default function CustomerSubscriptions() {
             ) : (
               <div className="space-y-3">
                 {subs.map((sub) => {
-                  const product = ALL_PRODUCTS.find((p) => p.id === sub.productId)!;
-                  const monthly = monthlyEst(sub.quantity, product.pricePerUnit);
-                  const isConfirmingDelete = deleteConfirm === sub.id;
+                  const product = allProducts.find((p) => p._id === sub._id)!;
+                  const monthly = monthlyEst(sub.quantity, sub.price);
+                  const isConfirmingDelete = deleteConfirm === sub._id;
 
                   return (
                     <div
-                      key={sub.id}
+                      key={sub._id}
                       className="bg-white rounded-2xl ring-1 ring-slate-100 overflow-hidden"
                     >
                       {/* Product info row */}
                       <div className="flex items-center gap-3 p-4 pb-3">
                         <div className="bg-blue-50 rounded-xl w-11 h-11 flex items-center justify-center text-2xl shrink-0">
-                          {product.icon}
+                          { !product.image ? 
+                            <Milk/> : 
+                            <img src={product.image} alt="" className="w-11 h-11 rounded-xl flex shrink-0"/>
+                          }
+
                         </div>
                         <div className="flex-1 min-w-0">
                           <p className="font-semibold text-slate-900 text-sm">
                             {product.name}
                           </p>
                           <p className="text-xs text-slate-500 mt-0.5">
-                            ₹{product.pricePerUnit}/L · {product.description}
+                            ₹{product.price}/{product.unit}
                           </p>
+                          
                         </div>
                         <button
                           onClick={() =>
-                            setDeleteConfirm(isConfirmingDelete ? null : sub.id)
+                            setDeleteConfirm(isConfirmingDelete ? null : sub._id)
                           }
                           className="p-2 rounded-xl hover:bg-rose-50 text-slate-300 hover:text-rose-400 transition-colors"
                         >
@@ -269,7 +338,7 @@ export default function CustomerSubscriptions() {
                       <div className="flex items-center justify-between px-4 pb-4">
                         <QtyControl
                           value={sub.quantity}
-                          onChange={(v) => updateQty(sub.id, v)}
+                          onChange={(v) => updateQty(sub._id, v)}
                         />
                         <div className="text-right">
                           <p className="text-base font-bold text-slate-900">
@@ -293,13 +362,15 @@ export default function CustomerSubscriptions() {
                             Cancel
                           </button>
                           <button
-                            onClick={() => removeSub(sub.id)}
+                            onClick={() => removeSub(sub._id)}
                             className="text-xs font-semibold text-white bg-rose-500 px-3 py-1.5 rounded-lg hover:bg-rose-600"
                           >
                             Remove
                           </button>
                         </div>
                       )}
+
+
                     </div>
                   );
                 })}
@@ -314,14 +385,12 @@ export default function CustomerSubscriptions() {
                 Add Product
               </p>
 
-              {/* Product picker cards */}
               <div className="space-y-2">
                 {availableToAdd.map((product) => {
-                  const isSelected = addingId === product.id;
-
+                  const isSelected = addingId === product._id;
                   return (
                     <div
-                      key={product.id}
+                      key={product._id}
                       className={`bg-white rounded-2xl ring-1 overflow-hidden transition-all ${
                         isSelected ? "ring-blue-400 shadow-sm" : "ring-slate-100"
                       }`}
@@ -329,20 +398,23 @@ export default function CustomerSubscriptions() {
                       {/* Row */}
                       <button
                         onClick={() => {
-                          setAddingId(isSelected ? null : product.id);
+                          setAddingId(isSelected ? null : product._id);
                           setNewQty(1);
                         }}
                         className="w-full flex items-center gap-3 p-4 text-left"
                       >
                         <div className="bg-slate-50 rounded-xl w-11 h-11 flex items-center justify-center text-2xl shrink-0">
-                          {product.icon}
+                          { !product.image ? 
+                            <Milk/> : 
+                            <img src={product.image} alt="" className="w-11 h-11 rounded-xl flex shrink-0"/>
+                          }
                         </div>
                         <div className="flex-1 min-w-0">
                           <p className="font-semibold text-slate-900 text-sm">
                             {product.name}
                           </p>
                           <p className="text-xs text-slate-500 mt-0.5">
-                            ₹{product.pricePerUnit}/L · {product.description}
+                            ₹{product.price}/{product.unit}
                           </p>
                         </div>
                         <div
@@ -359,6 +431,8 @@ export default function CustomerSubscriptions() {
                       {/* Expanded qty picker */}
                       {isSelected && (
                         <div className="border-t border-slate-100 px-4 py-4 bg-slate-50 space-y-4">
+
+
                           <div className="flex items-center justify-between">
                             <div>
                               <p className="text-sm font-medium text-slate-700">
@@ -374,19 +448,26 @@ export default function CustomerSubscriptions() {
                           {/* Estimate */}
                           <div className="bg-white rounded-xl p-3 flex justify-between items-center">
                             <span className="text-xs text-slate-500">
-                              {newQty}L × 30 days × ₹{product.pricePerUnit}
+                              {newQty}L × 30 days × ₹{product.price}
                             </span>
                             <span className="text-sm font-bold text-slate-900">
-                              ₹{monthlyEst(newQty, product.pricePerUnit).toLocaleString("en-IN")}/mo
+                              ₹{monthlyEst(newQty, product.price).toLocaleString("en-IN")}/mo
                             </span>
                           </div>
 
                           <button
-                            onClick={confirmAdd}
+                            onClick={(e)=>{
+                              console.log("confirming ", product)
+                              console.log("current subs are ", subs)
+                              confirmAdd(product)
+
+                            }}
                             className="w-full py-3 bg-blue-600 text-white text-sm font-semibold rounded-xl hover:bg-blue-700 active:scale-95 transition-all"
                           >
                             Add {product.name}
                           </button>
+
+
                         </div>
                       )}
                     </div>
@@ -395,6 +476,9 @@ export default function CustomerSubscriptions() {
               </div>
             </div>
           )}
+
+
+
 
           {/* ── All subscribed, no more to add ── */}
           {availableToAdd.length === 0 && subs.length > 0 && (

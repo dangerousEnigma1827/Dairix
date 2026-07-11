@@ -97,6 +97,7 @@ const userSchema = new mongoose.Schema(
         products:{ 
             type:[
                 {
+                    _id:string,
                     name:String,
                     price:Number,
                     unit:String,
