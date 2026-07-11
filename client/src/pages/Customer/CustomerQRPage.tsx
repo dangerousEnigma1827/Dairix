@@ -65,6 +65,29 @@ export default function CustomerQRPage() {
         a.click()
     }
 
+    const handleShare = async () => {
+        const canvas = document.getElementById(
+            "canvasId"
+        ) as HTMLCanvasElement;
+
+        canvas.toBlob(async (blob) => {
+            if (!blob) return;
+            const file = new File(
+                [blob],
+                "qr-code.png",
+                {
+                    type:"image/png"
+                }
+            );
+            await navigator.share({
+                title:"Milk Delivery QR",
+                text:"Scan this QR",
+                files:[file]
+            });
+        });
+
+    };
+
     const handleGetCurrentUser = async () =>{
       setLoading((prev)=>{
         return {...prev, customerLoading:true}
@@ -138,18 +161,9 @@ export default function CustomerQRPage() {
                 </button>
 
                 <button
-                className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl bg-blue-600 text-sm font-semibold text-white hover:bg-blue-700 active:scale-95 transition-all">
-                {copied ? (
-                    <>
-                    <CheckCircle2 size={16} />
-                    Copied!
-                    </>
-                ) : (
-                    <>
+                className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl bg-blue-600 text-sm font-semibold text-white hover:bg-blue-700 active:scale-95 transition-all" onClick={handleShare}>
                     <Share2 size={16} />
                     Share
-                    </>
-                )}
                 </button>
                 
             </div>
