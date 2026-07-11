@@ -179,8 +179,8 @@ export default function CustomerDashboard() {
  
   if(loading.customerLoading || !customer){
     console.log(customer)
-    return <p>Wair</p>
-    // return <LoadingPageNoReturn/>
+    // return <p>Wair</p>
+    return <LoadingPageNoReturn/>
   }
 
   const outstandingBalance = CURRENT_BILL.totalAmount - CURRENT_BILL.amountPaid;
