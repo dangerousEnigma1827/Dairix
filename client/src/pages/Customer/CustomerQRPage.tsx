@@ -55,6 +55,16 @@ export default function CustomerQRPage() {
     })
     const [customer, setCustomer]=useState<CustomerType | null>(null)
 
+    const handleDownload= async ()=>{
+        const canvas = document.getElementById('canvasId') as HTMLCanvasElement
+
+        const imageUrl = canvas.toDataURL()
+        const a = document.createElement('a')
+        a.href=imageUrl
+        a.download="qr-code.png"
+        a.click()
+    }
+
     const handleGetCurrentUser = async () =>{
       setLoading((prev)=>{
         return {...prev, customerLoading:true}
@@ -112,6 +122,7 @@ export default function CustomerQRPage() {
 
             <div className="relative">
               <QRCodeCanvas
+                id="canvasId"
                 value={customer?._id}
                 size={200}/>
             </div>
@@ -120,7 +131,8 @@ export default function CustomerQRPage() {
             {/* Action buttons */}
             <div className="flex gap-3 mt-6 w-full">
                 <button
-                className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl border border-slate-200 text-sm font-semibold text-slate-700 hover:bg-slate-50 active:scale-95 transition-all">
+                className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl border border-slate-200 text-sm font-semibold text-slate-700 hover:bg-slate-50 active:scale-95 transition-all"
+                onClick={handleDownload}>
                 <Download size={16} />
                 Save PNG
                 </button>
