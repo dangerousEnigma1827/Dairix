@@ -26,6 +26,7 @@ import DeliveryStaff from './pages/Owner/DeliveryStaff'
 import Deliveries from './pages/Owner/Deliveries'
 import Customers from './pages/Owner/Customers'
 import AssignDM from './pages/Owner/AssignDM'
+import DMDetails from './pages/Owner/DeliveryStaff/DMDetails'
 
 
 function App() {
@@ -51,6 +52,7 @@ function App() {
             <Route index element={<OwnerDashboard />} />
             <Route path="products" element={<Products />} />
             <Route path="delivery-staff" element={<DeliveryStaff />} />
+            <Route path="delivery-staff/:dmId" element={<DMDetails />} />
             <Route path="deliveries" element={<Deliveries />} />
             <Route path="customers" element={<Customers />} />
             <Route path="customers/:customerId/assign-dm" element={<AssignDM />} />

@@ -2,9 +2,10 @@ import { useEffect, useState } from "react";
 import { Plus, Phone, Users, Truck, Search, ArrowUpRight } from "lucide-react";
 import AddDMModal from "../../components/Owner/DeliveryStaff/AddDMModal";
 import { getAllDms } from "../../api/Services/Owner/DmServices";
+import { useNavigate } from "react-router-dom";
 
 type DM = {
-    id: number;
+    _id: number;
     name: string;
     mobile: string;
 };
@@ -29,6 +30,7 @@ function DeliveryStaff() {
     const [showModal, setShowModal] = useState(false);
     const [search, setSearch] = useState("");
 
+    const navigate=useNavigate()
     const [dms, setDms] = useState<DM[]>([]);
 
     const handleGetDms = async () => {
@@ -45,7 +47,7 @@ function DeliveryStaff() {
         setDms((prev) => [
             ...prev,
             {
-                id: Date.now(),
+                _id: Date.now(),
                 name: newDM.name,
                 mobile: newDM.mobile,
                 // customers: 0,
@@ -153,7 +155,7 @@ function DeliveryStaff() {
                     <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
                         {filteredDms?.map((dm, idx) => (
                             <div
-                                key={dm.id}
+                                key={dm._id}
                                 className="group rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-100 transition hover:shadow-md"
                             >
                                 <div className="flex items-start justify-between">
@@ -197,7 +199,9 @@ function DeliveryStaff() {
                                 </div>
 
                                 <div className="mt-4 flex items-center justify-between">
-                                    <button className="flex items-center gap-1 text-sm font-medium text-blue-600 transition hover:gap-1.5 hover:text-blue-700">
+                                    <button className="flex items-center gap-1 text-sm font-medium text-blue-600 transition hover:gap-1.5 hover:text-blue-700" onClick={()=>{
+                                        navigate(`/owner/delivery-staff/${dm._id}`)
+                                    }}>
                                         View details
                                         <ArrowUpRight size={14} />
                                     </button>

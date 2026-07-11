@@ -17,12 +17,18 @@ type Address = {
     pincode: string;
 };
 
+type DeliveryStaff = {
+    _id: string;
+    name: string;
+    mobile: string;
+};
+
 export type Customer = {
     _id: string;
     name: string;
     mobile: string;
     address: Address;
-    assignedDm: string | null;
+    assignedDm: DeliveryStaff | null;
 };
 
 type CustomerCardProps = {
@@ -46,16 +52,22 @@ const getInitials = (name: string) =>
         .join("")
         .toUpperCase();
 
+const hasAddress = (address?: Address) =>
+    !!address &&
+    [address.houseNo, address.street, address.landmark, address.city, address.pincode].some(
+        (part) => part && part.trim().length > 0
+    );
 
 function CustomerCard({ customer, idx }: CustomerCardProps) {
-console.log(customer)
+    const navigate = useNavigate();
+    const { houseNo, street, landmark, city, pincode } = customer.address || {};
 
-    let navigate=useNavigate()
     return (
         <div className="group rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-100 transition hover:shadow-md">
 
             {/* Header */}
             <div className="flex items-center gap-3">
+
                 <div
                     className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-sm font-semibold ${
                         avatarPalette[idx % avatarPalette.length]
@@ -70,10 +82,11 @@ console.log(customer)
                     </h2>
 
                     <p className="flex items-center gap-1.5 text-sm text-slate-500">
-                        <Phone size={13} />
+                        <Phone size={13}/>
                         {customer.mobile}
                     </p>
                 </div>
+
             </div>
 
 
@@ -86,18 +99,33 @@ console.log(customer)
 
 
                 {customer.assignedDm ? (
-                    <span className="flex items-center gap-1.5 text-sm font-medium text-slate-800">
-                        <UserCircle2
-                            size={16}
-                            className="text-blue-600"
-                        />
 
-                        {customer.assignedDm}
-                    </span>
+                    <div className="flex flex-col">
+
+                        <span className="flex items-center gap-1.5 text-sm font-medium text-slate-800">
+
+                            <UserCircle2
+                                size={16}
+                                className="text-blue-600"
+                            />
+
+                            {customer.assignedDm.name}
+
+                        </span>
+
+
+                        <span className="ml-5 text-xs text-slate-500">
+                            {customer.assignedDm.mobile}
+                        </span>
+
+                    </div>
+
                 ) : (
+
                     <span className="inline-flex rounded-full bg-rose-50 px-2.5 py-1 text-xs font-medium text-rose-600">
                         No Delivery Staff Assigned
                     </span>
+
                 )}
 
             </div>
@@ -111,64 +139,45 @@ console.log(customer)
                     Address
                 </p>
 
+                {hasAddress(customer.address) ? (
+                    <div className="space-y-2 text-sm text-slate-600">
 
-                <div className="space-y-2 text-sm text-slate-600">
+                        {houseNo && (
+                            <div className="flex items-center gap-2">
+                                <Home size={15} className="shrink-0 text-blue-600"/>
+                                <span>{houseNo}</span>
+                            </div>
+                        )}
 
+                        {street && (
+                            <div className="flex items-center gap-2">
+                                <MapPinned size={15} className="shrink-0 text-emerald-600"/>
+                                <span>{street}</span>
+                            </div>
+                        )}
 
-                    <div className="flex items-center gap-2">
-                        <Home
-                            size={15}
-                            className="shrink-0 text-blue-600"
-                        />
+                        {landmark && (
+                            <div className="flex items-center gap-2">
+                                <Building2 size={15} className="shrink-0 text-amber-600"/>
+                                <span>{landmark}</span>
+                            </div>
+                        )}
 
-                        <span>
-                            {customer.address.houseNo || "-"}
-                        </span>
+                        {(city || pincode) && (
+                            <div className="flex items-center gap-2">
+                                <Map size={15} className="shrink-0 text-violet-600"/>
+                                <span>
+                                    {city}
+                                    {city && pincode && " - "}
+                                    {pincode}
+                                </span>
+                            </div>
+                        )}
+
                     </div>
-
-
-
-                    <div className="flex items-center gap-2">
-                        <MapPinned
-                            size={15}
-                            className="shrink-0 text-emerald-600"
-                        />
-
-                        <span>
-                            {customer.address.street || "-"}
-                        </span>
-                    </div>
-
-
-
-                    <div className="flex items-center gap-2">
-                        <Building2
-                            size={15}
-                            className="shrink-0 text-amber-600"
-                        />
-
-                        <span>
-                            {customer.address.landmark || "-"}
-                        </span>
-                    </div>
-
-
-
-                    <div className="flex items-center gap-2">
-                        <Map
-                            size={15}
-                            className="shrink-0 text-violet-600"
-                        />
-
-                        <span>
-                            {customer.address.city || "-"}
-                            {customer.address.pincode &&
-                                ` - ${customer.address.pincode}`}
-                        </span>
-                    </div>
-
-
-                </div>
+                ) : (
+                    <span className="text-sm text-slate-400">No address added</span>
+                )}
 
             </div>
 
@@ -186,10 +195,12 @@ console.log(customer)
                 </button>
 
 
-
-                <button className="rounded-lg bg-slate-100 px-3.5 py-1.5 text-sm font-medium text-slate-700 transition hover:bg-slate-200" onClick={(e)=>{
-                    navigate(`/owner/customers/${customer._id}/assign-dm`)
-                }}>
+                <button
+                    onClick={() =>
+                        navigate(`/owner/customers/${customer._id}/assign-dm`)
+                    }
+                    className="rounded-lg bg-slate-100 px-3.5 py-1.5 text-sm font-medium text-slate-700 transition hover:bg-slate-200"
+                >
 
                     {customer.assignedDm
                         ? "Change DM"
@@ -199,10 +210,8 @@ console.log(customer)
 
             </div>
 
-
         </div>
     );
 }
-
 
 export default CustomerCard;
