@@ -27,6 +27,7 @@ import Deliveries from './pages/Owner/Deliveries'
 import Customers from './pages/Owner/Customers'
 import AssignDM from './pages/Owner/AssignDM'
 import DMDetails from './pages/Owner/DeliveryStaff/DMDetails'
+import CustomerSubscriptions from './pages/Customer/CustomerSubscriptions'
 
 
 function App() {
@@ -74,7 +75,21 @@ function App() {
               <CustomerDashboard />
             </ProtectedRoute>
           }
-        />
+        >
+        </Route>
+
+
+        <Route
+          path="/customer/products"
+          element={
+            <ProtectedRoute allowedRoles={["customer"]}>
+              <CustomerSubscriptions />
+            </ProtectedRoute>
+          }
+        >
+        </Route>
+
+        
       </Routes>
     </>
   )

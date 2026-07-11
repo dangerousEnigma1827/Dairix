@@ -291,6 +291,8 @@ export default function CustomerDashboard() {
 
           {/* Navigation tiles */}
           <div className="grid grid-cols-2 gap-3">
+            
+
             <button
               onClick={() => navigate("/customer/deliveries")}
               className="bg-white rounded-2xl shadow-sm ring-1 ring-slate-100 p-4 flex flex-col gap-3 text-left active:scale-95 transition-transform hover:ring-blue-200"
@@ -346,6 +348,8 @@ export default function CustomerDashboard() {
               </div>
               <ChevronRight size={14} className="text-slate-400 self-end" />
             </button>
+
+
           </div>
 
           {/* Subscriptions summary */}
@@ -361,6 +365,8 @@ export default function CustomerDashboard() {
                 Manage <ChevronRight size={13} />
               </button>
             </div>
+
+
             {CUSTOMER.subscriptions.map((sub, i) => (
               <div key={i} className="flex items-center gap-3">
                 <div className="bg-blue-50 p-2 rounded-xl">
@@ -382,7 +388,7 @@ export default function CustomerDashboard() {
             ))}
           </div>
 
-          {/* DM card */}
+         
           {CUSTOMER.assignedDm && (
             <div className="bg-white rounded-2xl shadow-sm ring-1 ring-slate-100 p-4">
               <p className="text-xs font-medium text-slate-500 uppercase tracking-wide mb-3">
@@ -417,8 +423,12 @@ export default function CustomerDashboard() {
             </div>
           )}
 
+          
+
         </div>
       </main>
     </div>
   );
 }
+
+
