@@ -1,9 +1,3 @@
-/**
- * Installation (run once in your project):
- *   npm install qrcode
- *   npm install -D @types/qrcode
- */
-
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import QRCode from "qrcode";
