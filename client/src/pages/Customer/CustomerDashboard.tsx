@@ -17,18 +17,31 @@ import {
   Droplets,
   AlertCircle,
 } from "lucide-react";
+import { currUserService } from "../../api/Services/AuthServices";
+import { useEffect, useState } from "react";
+import type { AddressType } from "../../Types/Customer";
+import LoadingPage from "../LoadingPage";
+import LoadingPageNoReturn from "../LoadingPageNoReturn";
 
-// ── swap these with your real API types / data ──────────────────────────────
 
 type DailyStatus = "delivered" | "skipped" | "paused" | "pending";
 
-type Customer = {
+type Address = AddressType
+
+type ProductType = {
+  name:string,
+  price:number,
+  unit:string,
+  image:string,
+  quantity:number
+}
+
+type CustomerType = {
   name: string;
   mobile: string;
-  address: { houseNo: string; street: string; city: string };
+  address: Address
   assignedDm: { name: string; mobile: string } | null;
-  subscriptions: { productName: string; quantity: number; pricePerUnit: number }[];
-  joinedOn: string;
+  products?: ProductType[];
 };
 
 type Bill = {
@@ -45,18 +58,6 @@ type WeekDay = {
   status: DailyStatus | null;
 };
 
-// ── mock — delete and replace with useEffect / API calls ────────────────────
-
-const CUSTOMER: Customer = {
-  name: "Venkata Rao",
-  mobile: "98761 23456",
-  address: { houseNo: "H-7", street: "Laxmi Colony", city: "Kamareddy" },
-  assignedDm: { name: "Ravi Kumar", mobile: "98760 11111" },
-  subscriptions: [
-    { productName: "Cow Milk", quantity: 2, pricePerUnit: 60 },
-  ],
-  joinedOn: "2025-01-10",
-};
 
 const CURRENT_BILL: Bill = {
   month: "June 2026",
@@ -139,16 +140,53 @@ const dotColor: Record<DailyStatus, string> = {
   pending:   "bg-slate-200",
 };
 
+
+
 export default function CustomerDashboard() {
   const navigate = useNavigate();
   const todayCfg = statusConfig[TODAY_STATUS];
   const TodayIcon = todayCfg.icon;
 
+  const [loading, setLoading] = useState({
+    customerLoading:false
+  })
+
+  //states
+  const [customer, setCustomer]=useState<CustomerType|null>(null)
+
+  const handleGetCurrentUser = async () =>{
+    setLoading((prev)=>{
+      return {...prev, customerLoading:true}
+    })
+
+    try{
+      let req = await currUserService()
+      console.log(req)
+      setCustomer(req.user)
+    }catch(err:any){
+      console.log("error getting customer details",err)
+    }finally{
+      setLoading((prev)=>{
+        return {...prev, customerLoading:false}
+      })
+    }
+  }
+
+  useEffect(()=>{
+    handleGetCurrentUser()
+  },[])
+
+ 
+  if(loading.customerLoading || !customer){
+    return <LoadingPageNoReturn/>
+  }
+
   const outstandingBalance = CURRENT_BILL.totalAmount - CURRENT_BILL.amountPaid;
-  const monthlyEstimate = CUSTOMER.subscriptions.reduce(
-    (acc, s) => acc + s.quantity * s.pricePerUnit * 30,
+  const monthlyEstimate = customer.products?.reduce(
+    (acc, s) => acc + s.quantity * s.price * 30,
     0
   );
+  
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col">
@@ -183,10 +221,10 @@ export default function CustomerDashboard() {
             <div className="flex items-start justify-between mb-3">
               <div>
                 <p className="text-blue-200 text-xs font-medium mb-0.5">Welcome back</p>
-                <h1 className="text-xl font-bold">{CUSTOMER.name}</h1>
+                <h1 className="text-xl font-bold">{customer.name}</h1>
                 <p className="text-blue-200 text-sm flex items-center gap-1.5 mt-0.5">
                   <Phone size={12} />
-                  {CUSTOMER.mobile}
+                  {customer.mobile}
                 </p>
               </div>
               <div className="bg-white/15 rounded-full p-2.5">
@@ -196,8 +234,8 @@ export default function CustomerDashboard() {
             <div className="flex items-center gap-1.5 text-blue-100 text-xs">
               <MapPin size={12} />
               <span>
-                {CUSTOMER.address.houseNo}, {CUSTOMER.address.street},{" "}
-                {CUSTOMER.address.city}
+                {customer.address.houseNo}, {customer.address.street},{" "}
+                {customer.address.city}
               </span>
             </div>
           </div>
@@ -353,43 +391,71 @@ export default function CustomerDashboard() {
           </div>
 
           {/* Subscriptions summary */}
-          <div className="bg-white rounded-2xl shadow-sm ring-1 ring-slate-100 p-4">
-            <div className="flex items-center justify-between mb-3">
-              <p className="text-xs font-medium text-slate-500 uppercase tracking-wide">
-                Active Subscriptions
-              </p>
-              <button
-                onClick={() => navigate("/customer/products")}
-                className="text-xs text-blue-600 font-medium flex items-center gap-0.5"
-              >
-                Manage <ChevronRight size={13} />
-              </button>
-            </div>
+          {customer.products && customer.products.length > 0 ? (
+  <div className="bg-white rounded-2xl shadow-sm ring-1 ring-slate-100 p-4">
+    <div className="flex items-center justify-between mb-3">
+      <p className="text-xs font-medium text-slate-500 uppercase tracking-wide">
+        Active Subscriptions
+      </p>
 
+      <button
+        onClick={() => navigate("/customer/products")}
+        className="text-xs text-blue-600 font-medium flex items-center gap-0.5"
+      >
+        Manage <ChevronRight size={13} />
+      </button>
+    </div>
 
-            {CUSTOMER.subscriptions.map((sub, i) => (
-              <div key={i} className="flex items-center gap-3">
-                <div className="bg-blue-50 p-2 rounded-xl">
-                  <Droplets size={18} className="text-blue-600" />
-                </div>
-                <div className="flex-1">
-                  <p className="text-sm font-semibold text-slate-800">{sub.productName}</p>
-                  <p className="text-xs text-slate-500">
-                    {sub.quantity} L/day · ₹{sub.pricePerUnit}/L
-                  </p>
-                </div>
-                <div className="text-right">
-                  <p className="text-sm font-bold text-slate-900">
-                    ₹{(sub.quantity * sub.pricePerUnit * 30).toLocaleString("en-IN")}
-                  </p>
-                  <p className="text-xs text-slate-400">/month</p>
-                </div>
-              </div>
-            ))}
-          </div>
+    {customer.products.map((sub, i) => (
+      <div key={i} className="flex items-center gap-3">
+        <div className="bg-blue-50 p-2 rounded-xl">
+          <Droplets size={18} className="text-blue-600" />
+        </div>
 
+        <div className="flex-1">
+          <p className="text-sm font-semibold text-slate-800">
+            {sub.name}
+          </p>
+
+          <p className="text-xs text-slate-500">
+            {sub.quantity} L/day · ₹{sub.price}/L
+          </p>
+        </div>
+
+        <div className="text-right">
+          <p className="text-sm font-bold text-slate-900">
+            ₹{(sub.quantity * sub.price * 30).toLocaleString("en-IN")}
+          </p>
+          <p className="text-xs text-slate-400">/month</p>
+        </div>
+      </div>
+    ))}
+  </div>
+) : (
+  <div className="bg-white rounded-2xl shadow-sm ring-1 ring-slate-100 p-5 text-center">
+    <div className="bg-blue-50 w-12 h-12 rounded-xl flex items-center justify-center mx-auto mb-3">
+      <Droplets size={24} className="text-blue-600" />
+    </div>
+
+    <p className="font-semibold text-slate-800">
+      No active subscriptions
+    </p>
+
+    <p className="text-sm text-slate-500 mt-1">
+      Add milk products to start your daily delivery.
+    </p>
+
+    <button
+      onClick={() => navigate("/customer/products")}
+      className="mt-4 bg-blue-600 text-white px-4 py-2 rounded-xl text-sm font-semibold hover:bg-blue-700 transition-colors"
+    >
+      Add Subscription
+    </button>
+  </div>
+)}
          
-          {CUSTOMER.assignedDm && (
+         
+          {customer.assignedDm && (
             <div className="bg-white rounded-2xl shadow-sm ring-1 ring-slate-100 p-4">
               <p className="text-xs font-medium text-slate-500 uppercase tracking-wide mb-3">
                 Your Delivery Person
@@ -397,7 +463,7 @@ export default function CustomerDashboard() {
               <div className="flex items-center gap-3">
                 <div className="bg-blue-600 rounded-full w-10 h-10 flex items-center justify-center shrink-0">
                   <span className="text-white text-sm font-bold">
-                    {CUSTOMER.assignedDm.name
+                    {customer.assignedDm.name
                       .split(" ")
                       .map((n) => n[0])
                       .join("")
@@ -406,15 +472,15 @@ export default function CustomerDashboard() {
                 </div>
                 <div className="flex-1">
                   <p className="font-semibold text-slate-800 text-sm">
-                    {CUSTOMER.assignedDm.name}
+                    {customer.assignedDm.name}
                   </p>
                   <p className="text-xs text-slate-500 flex items-center gap-1 mt-0.5">
                     <Phone size={11} />
-                    {CUSTOMER.assignedDm.mobile}
+                    {customer.assignedDm.mobile}
                   </p>
                 </div>
                 <a
-                  href={`tel:${CUSTOMER.assignedDm.mobile.replace(/\s/g, "")}`}
+                  href={`tel:${customer.assignedDm.mobile.replace(/\s/g, "")}`}
                   className="bg-blue-50 text-blue-600 rounded-xl px-3.5 py-2 text-xs font-semibold hover:bg-blue-100 transition-colors"
                 >
                   Call

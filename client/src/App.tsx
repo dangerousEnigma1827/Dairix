@@ -71,9 +71,9 @@ function App() {
         <Route
           path="/customer"
           element={
-            <ProtectedRoute allowedRoles={["customer"]}>
+            // <ProtectedRoute allowedRoles={["customer"]}>
               <CustomerDashboard />
-            </ProtectedRoute>
+            // </ProtectedRoute>
           }
         >
         </Route>
@@ -82,9 +82,9 @@ function App() {
         <Route
           path="/customer/products"
           element={
-            <ProtectedRoute allowedRoles={["customer"]}>
+            // <ProtectedRoute allowedRoles={["customer"]}>
               <CustomerSubscriptions />
-            </ProtectedRoute>
+            // </ProtectedRoute>
           }
         >
         </Route>

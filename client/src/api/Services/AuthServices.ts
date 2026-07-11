@@ -24,3 +24,8 @@ export const registerService = async (formData : formDataType) => {
 
     return req.data.data
 }
+
+export const currUserService = async () => {
+    let req = await api.get('/auth/me');
+    return req.data.data
+}

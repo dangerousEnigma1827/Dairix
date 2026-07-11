@@ -92,6 +92,19 @@ const userSchema = new mongoose.Schema(
         qrCode: {
             type: String,
             default: ""
+        },
+
+        products:{ 
+            type:[
+                {
+                    name:String,
+                    price:Number,
+                    unit:String,
+                    image:String,
+                    quantity:Number
+                }
+            ],
+            default:[]
         }
         
     },

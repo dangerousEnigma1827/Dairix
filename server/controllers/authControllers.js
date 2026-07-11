@@ -112,10 +112,10 @@ export const logout = asyncHandler(async (_req, res) => {
 
 
 export const getMe = asyncHandler(async (req, res) => {
-  const user = await User.findById(req.user._id);
+  const user = await User.findById(req.user._id).populate("assignedDm");
   if (!user) {
     throw new ApiError(404, "User not found");
   }
 
-  res.json(new ApiResponse(200, { user }, "User fetched successfully"));
+  res.json(new ApiResponse(200, user, "User fetched successfully"));
 });

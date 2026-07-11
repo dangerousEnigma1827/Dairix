@@ -14,7 +14,6 @@ import type { Customer } from "../../components/Owner/Customers/CustomerCard";
 import Spinner from "../../components/Spinner";
 
 
-
 function Customers() {
     const [search, setSearch] = useState("");
     const [customers, setCustomers] = useState<Customer[]>([]);
