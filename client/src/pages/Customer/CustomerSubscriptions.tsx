@@ -18,6 +18,7 @@ import LoadingPageNoReturn from "../LoadingPageNoReturn";
 import { currUserService } from "../../api/Services/AuthServices";
 import type { CustomerTypeExport } from "../../Types/Customer";
 import { getProducts } from "../../api/Services/Owner/ProductServices";
+import { updateSubsService } from "../../api/Services/Customer/CustomerServices";
 
 
 //types
@@ -25,17 +26,17 @@ type Product = {
   _id: string;
   name: string;
   price: number;
-  unit: "L";
+  unit: string;
   image: string;
 };
 
 type CustomerType = CustomerTypeExport
 
-type Subscription = {
+export type Subscription = {
   _id: string;
   name: string;
   price: number;
-  unit: "L";
+  unit: string;
   image: string;
   quantity:number
 };
@@ -94,7 +95,6 @@ export default function CustomerSubscriptions() {
   const [subs, setSubs] = useState<Subscription[]>([]);
   const [allProducts, setAllProducts] = useState<Product[]>([]);
 
-
   const [addingId, setAddingId] = useState<string | null>(null);
   const [newQty, setNewQty] = useState(1);
   const [saved, setSaved] = useState(false);
@@ -152,8 +152,15 @@ export default function CustomerSubscriptions() {
     setSaved(false);
   };
 
-  const handleSave = () => {
-    // TODO: call your API here
+  const handleSave = async () => {
+    if(!customer || !customer._id){
+      return;
+    }
+   
+    console.log("sending")
+    let req=await updateSubsService(subs, customer._id)
+
+    console.log("saving");
     setSaved(true);
     setTimeout(() => setSaved(false), 2500);
   };
@@ -174,8 +181,9 @@ export default function CustomerSubscriptions() {
 
     try{
       let req = await currUserService()
-      setCustomer(req.user)
-      setSubs(req.user.products)
+      setCustomer(req)
+      console.log(req)
+      setSubs(req.products)
     }catch(err:any){
       console.log("error getting customer details",err)
     }finally{

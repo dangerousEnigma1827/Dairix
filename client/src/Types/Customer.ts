@@ -7,6 +7,7 @@ export type AddressType = {
 };
 
 export type ProductType = {
+  _id:string;
   name:string,
   price:number,
   unit:string,
@@ -15,6 +16,7 @@ export type ProductType = {
 }
 
 export type CustomerTypeExport = {
+    _id:string|null
   name: string;
   mobile: string;
   address: AddressType

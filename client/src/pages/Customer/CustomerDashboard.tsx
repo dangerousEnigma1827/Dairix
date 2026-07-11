@@ -162,7 +162,7 @@ export default function CustomerDashboard() {
     try{
       let req = await currUserService()
       console.log(req)
-      setCustomer(req.user)
+      setCustomer(req)
     }catch(err:any){
       console.log("error getting customer details",err)
     }finally{
@@ -178,7 +178,9 @@ export default function CustomerDashboard() {
 
  
   if(loading.customerLoading || !customer){
-    return <LoadingPageNoReturn/>
+    console.log(customer)
+    return <p>Wair</p>
+    // return <LoadingPageNoReturn/>
   }
 
   const outstandingBalance = CURRENT_BILL.totalAmount - CURRENT_BILL.amountPaid;
