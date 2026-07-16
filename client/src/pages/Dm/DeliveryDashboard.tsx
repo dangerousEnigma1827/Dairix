@@ -19,14 +19,12 @@ import {
   Loader2,
 } from "lucide-react";
 
-
+//utils
 //utils
 import { formatTime } from "../../utils/formatTime";
 import { avatarPalette, getInitials } from "../../utils/AvatarPalletesAndGetInitials";
-// ── Replace these with your actual service imports ────────────────────────────
-// import { currDmService } from "../../api/Services/AuthServices";
-// import { getDmTodayDeliveriesService } from "../../api/Services/DM/DeliveryServices";
-// import LoadingPageNoReturn from "../LoadingPageNoReturn";
+import { currUserService } from "../../api/Services/AuthServices";
+import { getDmTodayDeliveriesService } from "../../api/Services/Owner/DeliveryEntryServices";
 
 // ── Types — align with your backend response shape ────────────────────────────
 
@@ -34,16 +32,32 @@ type DeliveryStatus = "delivered" | "skipped" | "pending" | "paused";
 
 type DeliveryItem = {
   _id: string;
-  customerName: string;
-  customerMobile: string;
-  address: string;
-  productName: string;
-  quantity: number;
-  unit: string;
+
+  customer: {
+    _id: string;
+    name: string;
+    mobile: string;
+    address: {
+      houseNo?: string;
+      street?: string;
+      landmark?: string;
+      city?: string;
+      pincode?: string;
+    };
+  };
+
+  products: {
+    product: {
+      _id: string;
+      name: string;
+      price: number;
+      unit: string;
+    };
+    quantity: number;
+  }[];
+
   status: DeliveryStatus;
-  paymentMode?: "cash" | "upi" | "on_account";
-  paymentAmount?: number;
-  deliveredAt?: string; // ISO time string
+  deliveredAt?: string;
 };
 
 type DMProfile = {
@@ -52,75 +66,6 @@ type DMProfile = {
   mobile: string;
   zone: string;
 };
-
-// ── Mock — delete and replace with useEffect / API calls ─────────────────────
-
-const MOCK_DM: DMProfile = {
-  _id: "dm_001",
-  name: "Ravi Kumar",
-  mobile: "98760 11111",
-  zone: "Zone A",
-};
-
-const MOCK_DELIVERIES: DeliveryItem[] = [
-  {
-    _id: "d1",
-    customerName: "Venkata Rao",
-    customerMobile: "98761 23456",
-    address: "H-7, Laxmi Colony",
-    productName: "Cow Milk",
-    quantity: 2,
-    unit: "L",
-    status: "delivered",
-    paymentMode: "cash",
-    paymentAmount: 120,
-    deliveredAt: "2026-06-16T08:41:00",
-  },
-  {
-    _id: "d2",
-    customerName: "Sridevi Kumari",
-    customerMobile: "98762 34567",
-    address: "Flat 203, MG Nagar",
-    productName: "Buffalo Milk",
-    quantity: 1,
-    unit: "L",
-    status: "delivered",
-    paymentMode: "on_account",
-    deliveredAt: "2026-06-16T08:38:00",
-  },
-  {
-    _id: "d3",
-    customerName: "Mohan Prasad",
-    customerMobile: "98763 45678",
-    address: "B-12, NTR Colony",
-    productName: "Cow Milk",
-    quantity: 1.5,
-    unit: "L",
-    status: "skipped",
-    deliveredAt: "2026-06-16T08:35:00",
-  },
-  {
-    _id: "d4",
-    customerName: "Anitha Reddy",
-    customerMobile: "98764 56789",
-    address: "F-5, Green Valley",
-    productName: "Organic Milk",
-    quantity: 1,
-    unit: "L",
-    status: "pending",
-  },
-  {
-    _id: "d5",
-    customerName: "Rama Krishna",
-    customerMobile: "98765 67890",
-    address: "House 9, NTR Colony",
-    productName: "Cow Milk",
-    quantity: 2,
-    unit: "L",
-    status: "pending",
-  },
-];
-
 
 const statusConfig: Record<
   DeliveryStatus,
@@ -156,8 +101,9 @@ const statusConfig: Record<
   },
 };
 
-// ── Main Page ─────────────────────────────────────────────────────────────────
 
+
+// ── Main Page ─────────────────────────────────────────────────────────────────
 export default function DeliveryDashboard() {
   const navigate = useNavigate();
 
@@ -168,13 +114,11 @@ export default function DeliveryDashboard() {
     deliveriesLoading: false,
   });
 
-  // ── API calls — swap mock with real services ──────────────────────────────
   const handleGetDm = async () => {
     setLoading((prev) => ({ ...prev, dmLoading: true }));
     try {
-      // const req = await currDmService();
-      // setDm(req);
-      setDm(MOCK_DM); // remove this line when using real API
+      const req = await currUserService();
+      setDm(req);
     } catch (err) {
       console.error("Error fetching DM profile:", err);
     } finally {
@@ -185,9 +129,9 @@ export default function DeliveryDashboard() {
   const handleGetDeliveries = async () => {
     setLoading((prev) => ({ ...prev, deliveriesLoading: true }));
     try {
-      // const req = await getDmTodayDeliveriesService();
-      // setDeliveries(req);
-      setDeliveries(MOCK_DELIVERIES); // remove this line when using real API
+      const req = await getDmTodayDeliveriesService();
+      console.log(req)
+      setDeliveries(req);
     } catch (err) {
       console.error("Error fetching deliveries:", err);
     } finally {
@@ -200,7 +144,6 @@ export default function DeliveryDashboard() {
     handleGetDeliveries();
   }, []);
 
-  // ── Show loading screen while fetching DM ─────────────────────────────────
   if (loading.dmLoading || !dm) {
     return (
       <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center gap-4">
@@ -213,31 +156,18 @@ export default function DeliveryDashboard() {
     );
   }
 
-  // ── Computed stats ────────────────────────────────────────────────────────
   const total     = deliveries.length;
-  const delivered = deliveries.filter((d) => d.status === "delivered").length;
-  const skipped   = deliveries.filter((d) => d.status === "skipped").length;
-  const pending   = deliveries.filter((d) => d.status === "pending").length;
+  const delivered = deliveries?.filter((d) => d.status === "delivered").length;
+  const skipped   = deliveries?.filter((d) => d.status === "skipped").length;
+  const pending   = deliveries?.filter((d) => d.status === "pending").length;
   const rate      = total > 0 ? Math.round((delivered / (total - pending)) * 100) || 0 : 0;
-
-  const cashCollected = deliveries
-    .filter((d) => d.status === "delivered" && d.paymentMode === "cash")
-    .reduce((acc, d) => acc + (d.paymentAmount ?? 0), 0);
-
-  const upiCollected = deliveries
-    .filter((d) => d.status === "delivered" && d.paymentMode === "upi")
-    .reduce((acc, d) => acc + (d.paymentAmount ?? 0), 0);
-
-  const onAccount = deliveries.filter(
-    (d) => d.status === "delivered" && d.paymentMode === "on_account"
-  ).length;
 
   const recentDeliveries = [...deliveries]
     .filter((d) => d.status !== "pending")
     .sort((a, b) => (b.deliveredAt ?? "").localeCompare(a.deliveredAt ?? ""))
     .slice(0, 4);
 
-  const pendingDeliveries = deliveries.filter((d) => d.status === "pending");
+  const pendingDeliveries = deliveries?.filter((d) => d.status === "pending");
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col">
@@ -403,30 +333,6 @@ export default function DeliveryDashboard() {
             </button>
           </div>
 
-          {/* ── Cash & UPI summary ── */}
-          <div className="bg-white rounded-2xl ring-1 ring-slate-100 shadow-sm p-4">
-            <p className="text-xs font-medium text-slate-500 uppercase tracking-wide mb-3">
-              Today's Collections
-            </p>
-            <div className="grid grid-cols-3 gap-3">
-              <div className="bg-emerald-50 rounded-xl p-3 text-center">
-                <p className="text-base font-bold text-emerald-700">
-                  ₹{cashCollected.toLocaleString("en-IN")}
-                </p>
-                <p className="text-[10px] text-emerald-600 mt-0.5">Cash</p>
-              </div>
-              <div className="bg-blue-50 rounded-xl p-3 text-center">
-                <p className="text-base font-bold text-blue-700">
-                  ₹{upiCollected.toLocaleString("en-IN")}
-                </p>
-                <p className="text-[10px] text-blue-600 mt-0.5">UPI</p>
-              </div>
-              <div className="bg-slate-50 rounded-xl p-3 text-center">
-                <p className="text-base font-bold text-slate-700">{onAccount}</p>
-                <p className="text-[10px] text-slate-500 mt-0.5">On Account</p>
-              </div>
-            </div>
-          </div>
 
           {/* ── Pending deliveries ── */}
           {pendingDeliveries.length > 0 && (
@@ -453,21 +359,21 @@ export default function DeliveryDashboard() {
                     <div
                       className={`${avatarPalette[idx % avatarPalette.length]} rounded-full w-9 h-9 flex items-center justify-center text-xs font-bold shrink-0`}
                     >
-                      {getInitials(d.customerName)}
+                      {getInitials(d.customer.name)}
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-semibold text-slate-900 truncate">
-                        {d.customerName}
+                        {d.customer.name}
                       </p>
                       <p className="text-xs text-slate-500 truncate mt-0.5">
-                        {d.address}
+                        {/* {d.address} */}
                       </p>
                     </div>
                     <div className="text-right shrink-0">
                       <p className="text-sm font-bold text-slate-800">
-                        {d.quantity} {d.unit}
+                        {d.products[0]?.quantity ?? 0} {d.products[0]?.product?.unit ?? ''}
                       </p>
-                      <p className="text-[10px] text-slate-400">{d.productName}</p>
+                      <p className="text-[10px] text-slate-400">{d.products[0]?.product?.name ?? ''}</p>
                     </div>
                     <ChevronRight size={15} className="text-slate-300 shrink-0" />
                   </button>
@@ -502,21 +408,11 @@ export default function DeliveryDashboard() {
                       <div
                         className={`${avatarPalette[idx % avatarPalette.length]} rounded-full w-9 h-9 flex items-center justify-center text-xs font-bold shrink-0`}
                       >
-                        {getInitials(d.customerName)}
+                        {getInitials(d.customer.name)}
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-semibold text-slate-900 truncate">
-                          {d.customerName}
-                        </p>
-                        <p className="text-xs text-slate-500 mt-0.5">
-                          {d.quantity} {d.unit} · {d.productName}
-                          {d.paymentMode && d.paymentMode !== "on_account" && (
-                            <span className="ml-1">
-                              · {d.paymentMode.toUpperCase()}
-                              {d.paymentAmount ? ` ₹${d.paymentAmount}` : ""}
-                            </span>
-                          )}
-                          {d.paymentMode === "on_account" && " · On Account"}
+                          {d.customer.name}
                         </p>
                       </div>
                       <div className="flex flex-col items-end gap-1 shrink-0">

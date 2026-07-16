@@ -16,7 +16,7 @@ export type ProductType = {
 }
 
 export type CustomerTypeExport = {
-    _id:string|null
+   _id:string|null
   name: string;
   mobile: string;
   address: AddressType

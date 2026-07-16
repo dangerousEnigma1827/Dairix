@@ -31,6 +31,7 @@ import dmRoutes from "./routes/Owner/dmRoutes.js"
 import customerRoutes from "./routes/Owner/customerRoutes.js"
 import customerRoutesByCustomers from "./routes/Customer/customerRoutes.js"
 import dispatchRoutes from "./routes/Owner/dispatchRoutes.js"
+import deliveryEntryRoutes from "./routes/Owner/deliveryEntryRoutes.js"
 
 app.use('/api/auth', authRoutes)
 app.use('/api/products', productRoutes)
@@ -38,6 +39,8 @@ app.use('/api/dm', dmRoutes)
 app.use('/api/customers', customerRoutes)
 app.use('/api/customers', customerRoutesByCustomers)
 app.use('/api/dispatch', dispatchRoutes)
+app.use('/api/deliveryEntry', deliveryEntryRoutes)
+
 
 
 //404 + global error handler
