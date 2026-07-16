@@ -48,3 +48,57 @@ export const createDispatch = async(req,res)=>{
         });
     }
 };
+
+export const getTodaysDispatch = async (req, res) => {
+    try {
+
+        const start = new Date();
+        start.setHours(0,0,0,0);
+
+        const end = new Date();
+        end.setHours(23,59,59,999);
+
+
+        const dispatch = await Dispatch.findOne({
+            createdAt:{
+                $gte:start,
+                $lte:end
+            }
+        })
+        .populate("deliveries.dm", "name mobile")
+        .populate("deliveries.allocations.product", "name price unit");
+
+
+        if(!dispatch){
+            return res.status(200).json({
+                exists:false,
+                dispatch:null,
+                deliveryEntries:[]
+            });
+        }
+
+
+        const deliveryEntries = await DeliveryEntry.find({
+            dispatch:dispatch._id
+        })
+        .populate("customer","name mobile address")
+        .populate("dm","name mobile")
+        .populate("products.product","name price unit");
+
+
+        return res.status(200).json({
+            exists:true,
+            dispatch,
+            deliveryEntries
+        });
+
+
+    } catch(error){
+
+        console.log("Get today's dispatch error:",error);
+
+        return res.status(500).json({
+            message:"Server error"
+        });
+    }
+};

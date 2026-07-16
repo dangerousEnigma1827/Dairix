@@ -30,6 +30,7 @@ import DMDetails from './pages/Owner/DeliveryStaff/DMDetails'
 import CustomerSubscriptions from './pages/Customer/CustomerSubscriptions'
 import CustomerQRPage from './pages/Customer/CustomerQRPage'
 import DMScanDeliver from './pages/Dm/DmScanDeliver'
+import DispatchStatus from './pages/Owner/DispatchStatus'
 
 
 function App() {
@@ -59,7 +60,10 @@ function App() {
             <Route path="deliveries" element={<Deliveries />} />
             <Route path="customers" element={<Customers />} />
             <Route path="customers/:customerId/assign-dm" element={<AssignDM />} />
+            <Route path="dispatch-status" element={<DispatchStatus />} />
         </Route>
+
+
 
         <Route
           path="/dm"

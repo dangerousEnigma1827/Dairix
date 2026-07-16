@@ -18,3 +18,8 @@ export const createDispatchService = async (payload:DispatchPayload) => {
     const req=api.post('/dispatch', payload);
     return (await req).data.data
 }
+
+export const getTodayDispatchService = async () => {
+    const res = await api.get("/dispatch/today");
+    return res.data;
+};
