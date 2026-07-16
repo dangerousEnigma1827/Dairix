@@ -5,6 +5,6 @@ import { createDispatch, getTodaysDispatch } from "../../controllers/Owner/dispa
 const router = express.Router();
 
 router.post('/', authenticate,createDispatch)
-router.get('/', authenticate,getTodaysDispatch)
+router.get('/today', authenticate,getTodaysDispatch)
 
 export default router;

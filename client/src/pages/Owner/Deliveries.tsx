@@ -7,6 +7,8 @@ import {
   Plus,
   Minus,
   CheckCircle2,
+  Circle,
+  XCircle,
   AlertCircle,
   Search,
   Loader2,
@@ -14,19 +16,22 @@ import {
   Users,
   Milk,
   Package,
-  ClipboardList,
   ArrowRight,
   X,
   Info,
   Check,
+  Lock,
 } from "lucide-react";
 import { avatarPalette as avatarColors, getInitials } from "../../utils/AvatarPalletesAndGetInitials";
 import { getProducts } from "../../api/Services/Owner/ProductServices";
 import { getAllCustomers } from "../../api/Services/Owner/CustomerServices";
 import { getAllDms } from "../../api/Services/Owner/DmServices";
-import { createDispatchService } from "../../api/Services/Owner/DispatchServices";
+import {
+  createDispatchService,
+  getTodayDispatchService,
+} from "../../api/Services/Owner/DispatchServices";
 
-// ── Types ──────────────────────────────────────────────────────────────────
+// ── Types: dispatch builder (pre-dispatch) ─────────────────────────────────
 
 type Product = {
   _id: string;
@@ -34,7 +39,7 @@ type Product = {
   price: number;
   unit: string;
   image?: string;
-  quantity:number;
+  quantity: number;
 };
 
 type Customer = {
@@ -42,7 +47,7 @@ type Customer = {
   name: string;
   mobile: string;
   address: string;
-  assignedDm: {_id:string};
+  assignedDm: { _id: string };
   products: Product[];
 };
 
@@ -52,25 +57,48 @@ type DM = {
   mobile: string;
 };
 
-// Per-DM dispatch: product quantities (can override defaults)
-type ProductAllocation = {
-  _id: string;
-  quantity: number; // litres
+// ── Types: dispatch status (post-dispatch, read-only) ─────────────────────
+// These mirror the Dispatch / DeliveryEntry mongoose models. The backend
+// populates `dm`, `product`, and `customer` refs before sending this down.
+
+type Allocation = {
+  product: Product;
+  quantity: number;
 };
 
-type DMDispatch = {
-  dmId: string;
-  allocations: ProductAllocation[]; // per-product quantities for today
+type DMDeliveryBlock = {
+  dm: DM;
+  allocations: Allocation[];
+  status: "assigned" | "completed";
+};
+
+type DeliveryEntryProduct = {
+  product: Product;
+  quantity: number;
+};
+
+type DeliveryEntry = {
+  _id: string;
+  customer: Customer;
+  dm: DM;
+  products: DeliveryEntryProduct[];
+  status: "pending" | "delivered" | "skipped";
+  deliveredAt?: string;
+};
+
+type DispatchData = {
+  _id: string;
+  date: string;
+  deliveries: DMDeliveryBlock[];
+  status: "created" | "completed";
 };
 
 type DispatchStatus = "idle" | "submitting" | "success" | "error";
+type PageMode = "loading" | "builder" | "status";
 
 // Compute default quantity for a DM+product: sum of all customers under that DM for that product
 function computeDefaultQty(dmId: string, _id: string, customers: Customer[]): number {
-  if(!customers){
-    return 0
-  }
-
+  if (!customers) return 0;
   return customers
     .filter((c) => c.assignedDm._id === dmId)
     .flatMap((c) => c.products)
@@ -82,7 +110,8 @@ const today = new Date().toLocaleDateString("en-IN", {
   weekday: "long", day: "numeric", month: "long", year: "numeric",
 });
 
-// ── Step indicator ─────────────────────────────────────────────────────────
+// ── Shared presentational bits ──────────────────────────────────────────────
+
 function StepBadge({ n, active, done }: { n: number; active: boolean; done: boolean }) {
   return (
     <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold shrink-0 transition-colors ${
@@ -95,72 +124,136 @@ function StepBadge({ n, active, done }: { n: number; active: boolean; done: bool
   );
 }
 
+function DmStatusPill({ status }: { status: DMDeliveryBlock["status"] }) {
+  const done = status === "completed";
+  return (
+    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold ${
+      done ? "bg-emerald-50 text-emerald-600 border border-emerald-200"
+           : "bg-blue-50 text-blue-600 border border-blue-200"
+    }`}>
+      {done ? <CheckCircle2 size={11} /> : <Truck size={11} />}
+      {done ? "Round complete" : "Out for delivery"}
+    </span>
+  );
+}
+
+function EntryStatusPill({ status }: { status: DeliveryEntry["status"] }) {
+  if (status === "delivered") {
+    return (
+      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-50 text-emerald-600 border border-emerald-200">
+        <CheckCircle2 size={11} /> Delivered
+      </span>
+    );
+  }
+  if (status === "skipped") {
+    return (
+      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-rose-50 text-rose-600 border border-rose-200">
+        <XCircle size={11} /> Skipped
+      </span>
+    );
+  }
+  return (
+    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-50 text-amber-600 border border-amber-200">
+      <Circle size={11} /> Pending
+    </span>
+  );
+}
+
 // ── Main Page ──────────────────────────────────────────────────────────────
 
 export default function Deliveries() {
   const navigate = useNavigate();
 
-  // Data
-  const [products, setProducts] = useState<Product[]>([]);
-  const [dms,setDms] = useState<DM[]>([]);
-  const [customers, setCustomers] = useState<Customer[]>([]);
+  // Which view we're in: unknown until we've checked whether today's
+  // dispatch already exists.
+  const [mode, setMode] = useState<PageMode>("loading");
 
-  // UI state
-  const [loading, setLoading] = useState({
+  // ── Builder data (only loaded when no dispatch exists yet) ──────────────
+  const [products, setProducts]   = useState<Product[]>([]);
+  const [dms, setDms]             = useState<DM[]>([]);
+  const [customers, setCustomers] = useState<Customer[]>([]);
+  const [builderLoading, setBuilderLoading] = useState({
     products: false, dms: false, customers: false,
   });
-
-  const [step,           setStep]           = useState<1 | 2 | 3>(1);
-  const [expandedDm,     setExpandedDm]     = useState<string | null>(null); //id of expanded dm
-  const [customerSearch, setCustomerSearch] = useState(""); //for searching customers
+  const [step, setStep]                     = useState<1 | 2 | 3>(1);
+  const [expandedDm, setExpandedDm]         = useState<string | null>(null);
+  const [customerSearch, setCustomerSearch] = useState("");
   const [dispatchStatus, setDispatchStatus] = useState<DispatchStatus>("idle");
-
-  // Dispatch data: dmId → _id → quantity
   const [dispatches, setDispatches] = useState<Record<string, Record<string, number>>>({});
 
-  // ── Fetch all data ───────────────────────────────────────────────────────
+  // ── Status data (only loaded when today's dispatch already exists) ──────
+  const [dispatchDoc, setDispatchDoc]         = useState<DispatchData | null>(null);
+  const [deliveryEntries, setDeliveryEntries] = useState<DeliveryEntry[]>([]);
+  const [statusLoading, setStatusLoading]     = useState(false);
+
+  // ── Entry point: figure out which mode to render ─────────────────────────
   useEffect(() => {
-    fetchAll();
+    checkTodayDispatch();
   }, []);
 
-  const fetchAll = async () => {
-    setLoading({ products: true, dms: true, customers: true });
+  const checkTodayDispatch = async () => {
     try {
-      setLoading((prev)=>{
-        return {...prev, products:true, dms:true, customers:true}
-      })
+      const res = await getTodayDispatchService();
+      if (res?.dispatch) {
+        setDispatchDoc(res.dispatch);
+        setDeliveryEntries(res.deliveryEntries ?? []);
+        setMode("status");
+      } else {
+        setMode("builder");
+        fetchBuilderData();
+      }
+    } catch (err) {
+      console.error("Error checking today's dispatch:", err);
+      // Fail open into the builder rather than stranding the owner on a blank page.
+      setMode("builder");
+      fetchBuilderData();
+    }
+  };
 
-      let req = await getProducts();
-      let getallcustomersreq = await getAllCustomers();
-      let getalldmssreq = await getAllDms();
+  const fetchStatusData = async () => {
+    setStatusLoading(true);
+    try {
+      const res = await getTodayDispatchService();
+      setDispatchDoc(res?.dispatch ?? null);
+      setDeliveryEntries(res?.deliveryEntries ?? []);
+    } catch (err) {
+      console.error("Error refreshing dispatch status:", err);
+    } finally {
+      setStatusLoading(false);
+    }
+  };
+
+  const fetchBuilderData = async () => {
+    setBuilderLoading({ products: true, dms: true, customers: true });
+    try {
+      const req = await getProducts();
+      const getallcustomersreq = await getAllCustomers();
+      const getalldmssreq = await getAllDms();
       setProducts(req);
       setDms(getalldmssreq);
       setCustomers(getallcustomersreq);
-
     } catch (err) {
       console.error("Error fetching dispatch data:", err);
     } finally {
-      setLoading({ products: false, dms: false, customers: false });
+      setBuilderLoading({ products: false, dms: false, customers: false });
     }
   };
 
   // Build default dispatch quantities from customer subscriptions
   useEffect(() => {
+    if (mode !== "builder") return;
     if (!dms.length || !products.length || !customers.length) return;
     const init: Record<string, Record<string, number>> = {};
     dms.forEach((dm) => {
       init[dm._id] = {};
       products.forEach((p) => {
-        const qty = computeDefaultQty(dm._id, p._id, customers);
-        init[dm._id][p._id] = qty;
+        init[dm._id][p._id] = computeDefaultQty(dm._id, p._id, customers);
       });
     });
     setDispatches(init);
-  }, [dms, products, customers]);
+  }, [mode, dms, products, customers]);
 
-
-
-  // ── Qty controls ─────────────────────────────────────────────────────────
+  // ── Builder: qty controls ────────────────────────────────────────────────
   const setQty = (dmId: string, _id: string, value: number) => {
     setDispatches((prev) => ({
       ...prev,
@@ -173,7 +266,7 @@ export default function Deliveries() {
     setQty(dmId, _id, Math.round((current + delta) * 2) / 2);
   };
 
-  // ── Derived totals ────────────────────────────────────────────────────────
+  // ── Builder: derived totals ──────────────────────────────────────────────
   const totalPerProduct = products.map((p) => ({
     ...p,
     total: dms.reduce((sum, dm) => sum + (dispatches[dm._id]?.[p._id] ?? 0), 0),
@@ -182,9 +275,7 @@ export default function Deliveries() {
   const totalLitres = totalPerProduct.reduce((s, p) => s + p.total, 0);
   const totalValue  = totalPerProduct.reduce((s, p) => s + p.total * p.price, 0);
 
-  const dmCustomerCount = (dmId: string) => {
-    return customers.filter((c) => c.assignedDm._id === dmId).length;
-  }
+  const dmCustomerCount = (dmId: string) => customers.filter((c) => c.assignedDm._id === dmId).length;
 
   const dmTotal = (dmId: string) =>
     products.reduce((s, p) => s + (dispatches[dmId]?.[p._id] ?? 0), 0);
@@ -192,30 +283,27 @@ export default function Deliveries() {
   const dmValue = (dmId: string) =>
     products.reduce((s, p) => s + (dispatches[dmId]?.[p._id] ?? 0) * p.price, 0);
 
-  // ── Submit ────────────────────────────────────────────────────────────────
   const handleDispatch = async () => {
     setDispatchStatus("submitting");
-    try{
+    try {
       const payload = dms.map((dm) => ({
         dmId: dm._id,
         allocations: products
-        .filter((p)=> (dispatches[dm._id]?.[p._id] ?? 0) > 0)
-        .map((p)=>({
-            productId:p._id,
-            quantity:dispatches[dm._id]?.[p._id] ?? 0
-        }))
+          .filter((p) => (dispatches[dm._id]?.[p._id] ?? 0) > 0)
+          .map((p) => ({
+            productId: p._id,
+            quantity: dispatches[dm._id]?.[p._id] ?? 0,
+          })),
       }));
-      console.log("123")
       await createDispatchService(payload);
-      console.log("456")
       setDispatchStatus("success");
       setStep(3);
-    }catch{
+    } catch {
       setDispatchStatus("error");
     }
-};
+  };
 
-  const isLoading = loading.products || loading.dms || loading.customers;
+  const isBuilderLoading = builderLoading.products || builderLoading.dms || builderLoading.customers;
 
   const filteredCustomers = customers.filter(
     (c) =>
@@ -223,11 +311,359 @@ export default function Deliveries() {
       c.mobile.includes(customerSearch)
   );
 
-  // ── Render ────────────────────────────────────────────────────────────────
+  // ── Status: derived data ──────────────────────────────────────────────────
+  const statusDms = dispatchDoc?.deliveries ?? [];
+
+  const statusProductTotals = (() => {
+    const map = new Map<string, { product: Product; total: number }>();
+    statusDms.forEach((block) => {
+      block.allocations.forEach((a) => {
+        const existing = map.get(a.product._id);
+        if (existing) existing.total += a.quantity;
+        else map.set(a.product._id, { product: a.product, total: a.quantity });
+      });
+    });
+    return Array.from(map.values());
+  })();
+
+  const statusTotalLitres = statusProductTotals.reduce((s, p) => s + p.total, 0);
+  const statusTotalValue  = statusProductTotals.reduce((s, p) => s + p.total * p.product.price, 0);
+
+  const statusDmTotalLitres = (dmId: string) =>
+    statusDms.find((d) => d.dm._id === dmId)?.allocations.reduce((s, a) => s + a.quantity, 0) ?? 0;
+
+  const statusDmTotalValue = (dmId: string) =>
+    statusDms.find((d) => d.dm._id === dmId)?.allocations.reduce((s, a) => s + a.quantity * a.product.price, 0) ?? 0;
+
+  const entriesForDm = (dmId: string) => deliveryEntries.filter((e) => e.dm._id === dmId);
+
+  const deliveredCount = deliveryEntries.filter((e) => e.status === "delivered").length;
+  const skippedCount   = deliveryEntries.filter((e) => e.status === "skipped").length;
+  const pendingCount   = deliveryEntries.filter((e) => e.status === "pending").length;
+  const totalStops     = deliveryEntries.length;
+  const progressPct    = totalStops ? Math.round(((deliveredCount + skippedCount) / totalStops) * 100) : 0;
+
+  const [statusSearch, setStatusSearch] = useState("");
+  const filteredEntries = deliveryEntries.filter(
+    (e) =>
+      e.customer.name.toLowerCase().includes(statusSearch.toLowerCase()) ||
+      e.customer.mobile.includes(statusSearch)
+  );
+
+  // ── Render: initial load (haven't determined mode yet) ───────────────────
+  if (mode === "loading") {
+    return (
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center gap-3">
+        <Loader2 size={22} className="text-blue-600 animate-spin" />
+        <span className="text-slate-500 text-sm">Checking today's dispatch…</span>
+      </div>
+    );
+  }
+
+  // ── Render: STATUS MODE (a dispatch already exists for today) ────────────
+  if (mode === "status") {
+    return (
+      <div className="min-h-screen bg-slate-50">
+        <div className="bg-white border-b border-slate-200 px-6 py-4">
+          <div className="max-w-screen-xl mx-auto flex items-center justify-between">
+            <div>
+              <div className="flex items-center gap-2 mb-0.5">
+                <Truck size={18} className="text-blue-600" />
+                <h1 className="text-lg font-bold text-slate-900">Today's Dispatch</h1>
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-slate-100 text-slate-500 border border-slate-200">
+                  <Lock size={10} /> Locked
+                </span>
+              </div>
+              <p className="text-sm text-slate-500">{today}</p>
+            </div>
+            <button
+              onClick={fetchStatusData}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-slate-200 text-sm text-slate-600 hover:bg-slate-50 transition-colors"
+            >
+              <RefreshCw size={14} className={statusLoading ? "animate-spin" : ""} />
+              Refresh
+            </button>
+          </div>
+        </div>
+
+        {!dispatchDoc ? (
+          <div className="flex items-center justify-center h-64 gap-3">
+            <Loader2 size={22} className="text-blue-600 animate-spin" />
+            <span className="text-slate-500 text-sm">Loading dispatch status…</span>
+          </div>
+        ) : (
+          <div className="max-w-screen-xl mx-auto px-6 py-5">
+            <div className="grid grid-cols-12 gap-5">
+
+              {/* ── LEFT COLUMN ── */}
+              <div className="col-span-3 space-y-4">
+                <div className="bg-blue-600 rounded-xl p-4 text-white">
+                  <p className="text-blue-200 text-xs font-medium mb-1">Dispatched for</p>
+                  <p className="text-base font-bold leading-tight">
+                    {new Date(dispatchDoc.date).toLocaleDateString("en-IN", { day: "numeric", month: "long" })}
+                  </p>
+                  <p className="text-blue-200 text-xs mt-2">
+                    {statusDms.length} DMs · {totalStops} customers
+                  </p>
+                </div>
+
+                <div className="bg-white rounded-xl border border-slate-200 p-4 space-y-3">
+                  <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide">
+                    Delivery Progress
+                  </p>
+                  <div className="w-full h-2 rounded-full bg-slate-100 overflow-hidden">
+                    <div className="h-full bg-emerald-500 transition-all" style={{ width: `${progressPct}%` }} />
+                  </div>
+                  <p className="text-xs text-slate-400">{progressPct}% of stops closed out</p>
+                  <div className="grid grid-cols-3 gap-2 pt-1">
+                    <div className="text-center">
+                      <p className="text-sm font-bold text-emerald-600">{deliveredCount}</p>
+                      <p className="text-[10px] text-slate-400">Delivered</p>
+                    </div>
+                    <div className="text-center">
+                      <p className="text-sm font-bold text-amber-500">{pendingCount}</p>
+                      <p className="text-[10px] text-slate-400">Pending</p>
+                    </div>
+                    <div className="text-center">
+                      <p className="text-sm font-bold text-rose-500">{skippedCount}</p>
+                      <p className="text-[10px] text-slate-400">Skipped</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="bg-white rounded-xl border border-slate-200 p-4 space-y-3">
+                  <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide">
+                    Dispatched Totals
+                  </p>
+                  {statusProductTotals.map(({ product, total }) => (
+                    <div key={product._id} className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <div className="w-2 h-2 rounded-full bg-blue-400" />
+                        <span className="text-sm text-slate-700">{product.name}</span>
+                      </div>
+                      <div className="text-right">
+                        <span className="text-sm font-bold text-slate-900">{total.toFixed(1)} L</span>
+                        <span className="text-xs text-slate-400 ml-1">· ₹{(total * product.price).toLocaleString("en-IN")}</span>
+                      </div>
+                    </div>
+                  ))}
+                  <div className="pt-3 border-t border-slate-100 space-y-1.5">
+                    <div className="flex justify-between">
+                      <span className="text-xs text-slate-500">Total volume</span>
+                      <span className="text-sm font-bold text-slate-900">{statusTotalLitres.toFixed(1)} L</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-xs text-slate-500">Total value</span>
+                      <span className="text-sm font-bold text-blue-600">₹{statusTotalValue.toLocaleString("en-IN")}</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-2 bg-amber-50 border border-amber-200 rounded-xl p-3">
+                  <Info size={14} className="text-amber-500 shrink-0 mt-0.5" />
+                  <p className="text-xs text-amber-700 leading-relaxed">
+                    This dispatch is locked for the day. Allocations can no longer be edited — only delivery
+                    status updates from the DM app will be reflected here.
+                  </p>
+                </div>
+              </div>
+
+              {/* ── CENTRE COLUMN ── */}
+              <div className="col-span-6 space-y-3">
+                <div className="flex items-center justify-between mb-1">
+                  <h2 className="text-sm font-semibold text-slate-700 flex items-center gap-2">
+                    <Users size={15} className="text-slate-400" />
+                    Delivery Man Status
+                  </h2>
+                  <span className="text-xs text-slate-400">{statusDms.length} delivery men</span>
+                </div>
+
+                {statusDms.map((block, dmIdx) => {
+                  const isExpanded  = expandedDm === block.dm._id;
+                  const dmEntries   = entriesForDm(block.dm._id);
+                  const dmDelivered = dmEntries.filter((e) => e.status === "delivered").length;
+
+                  return (
+                    <div
+                      key={block.dm._id}
+                      className={`bg-white rounded-xl border transition-all ${
+                        isExpanded ? "border-blue-200 shadow-sm" : "border-slate-200"
+                      }`}
+                    >
+                      <button
+                        onClick={() => setExpandedDm(isExpanded ? null : block.dm._id)}
+                        className="w-full flex items-center gap-3 px-4 py-3.5 text-left"
+                      >
+                        <div className={`${avatarColors[dmIdx % avatarColors.length]} rounded-full w-9 h-9 flex items-center justify-center text-xs font-bold shrink-0`}>
+                          {getInitials(block.dm.name)}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <p className="text-sm font-semibold text-slate-900">{block.dm.name}</p>
+                            <DmStatusPill status={block.status} />
+                          </div>
+                          <p className="text-xs text-slate-500 mt-0.5">
+                            {block.dm.mobile} · {dmEntries.length} stops · {dmDelivered} delivered
+                          </p>
+                        </div>
+                        <div className="hidden sm:flex items-center gap-3 mr-2">
+                          <div className="text-center">
+                            <p className="text-sm font-bold text-slate-900">{statusDmTotalLitres(block.dm._id).toFixed(1)} L</p>
+                            <p className="text-[10px] text-slate-400">total</p>
+                          </div>
+                          <div className="text-center">
+                            <p className="text-sm font-bold text-blue-600">₹{statusDmTotalValue(block.dm._id).toLocaleString("en-IN")}</p>
+                            <p className="text-[10px] text-slate-400">value</p>
+                          </div>
+                        </div>
+                        {isExpanded
+                          ? <ChevronUp size={16} className="text-slate-400 shrink-0" />
+                          : <ChevronDown size={16} className="text-slate-400 shrink-0" />
+                        }
+                      </button>
+
+                      {isExpanded && (
+                        <div className="border-t border-slate-100">
+                          <div className="px-4 py-3 bg-slate-50 space-y-2">
+                            <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide">
+                              Allocated Quantities
+                            </p>
+                            {block.allocations.map((a) => (
+                              <div key={a.product._id} className="flex items-center justify-between">
+                                <div className="flex items-center gap-2">
+                                  <div className="bg-white border border-slate-200 p-1.5 rounded-lg shrink-0">
+                                    <Milk size={13} className="text-blue-600" />
+                                  </div>
+                                  <span className="text-sm font-medium text-slate-800">{a.product.name}</span>
+                                </div>
+                                <div className="text-right">
+                                  <span className="text-sm font-bold text-slate-900">{a.quantity} L</span>
+                                  <span className="text-xs text-slate-500 ml-2">₹{(a.quantity * a.product.price).toLocaleString("en-IN")}</span>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+
+                          <div className="px-4 py-3 border-t border-slate-100">
+                            <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-2">
+                              Customers ({dmEntries.length})
+                            </p>
+                            <div className="space-y-1.5">
+                              {dmEntries.map((entry) => {
+                                const productNames = entry.products
+                                  .map((p) => `${p.quantity}L ${p.product.name}`)
+                                  .join(", ");
+                                return (
+                                  <div key={entry._id} className="flex items-center gap-2 py-1.5 border-b border-slate-50 last:border-0">
+                                    <div className="w-6 h-6 rounded-full bg-slate-100 text-slate-600 flex items-center justify-center text-[9px] font-bold shrink-0">
+                                      {getInitials(entry.customer.name)}
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                      <p className="text-xs font-semibold text-slate-800 truncate">{entry.customer.name}</p>
+                                      <p className="text-[10px] text-slate-400 truncate">{productNames}</p>
+                                    </div>
+                                    <EntryStatusPill status={entry.status} />
+                                  </div>
+                                );
+                              })}
+                              {dmEntries.length === 0 && (
+                                <p className="text-xs text-slate-400 text-center py-2">No customer stops recorded.</p>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* ── RIGHT COLUMN ── */}
+              <div className="col-span-3 space-y-4">
+                <div className="bg-white rounded-xl border border-slate-200 p-4 space-y-3">
+                  <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide">
+                    Per DM Overview
+                  </p>
+                  {statusDms.map((block, i) => {
+                    const dmEntries   = entriesForDm(block.dm._id);
+                    const dmDelivered = dmEntries.filter((e) => e.status === "delivered").length;
+                    return (
+                      <button
+                        key={block.dm._id}
+                        onClick={() => setExpandedDm(expandedDm === block.dm._id ? null : block.dm._id)}
+                        className="w-full flex items-center gap-2 py-2 border-b border-slate-50 last:border-0 hover:bg-slate-50 rounded-lg px-2 -mx-2 transition-colors"
+                      >
+                        <div className={`${avatarColors[i % avatarColors.length]} rounded-full w-6 h-6 flex items-center justify-center text-[9px] font-bold shrink-0`}>
+                          {getInitials(block.dm.name)}
+                        </div>
+                        <div className="flex-1 text-left">
+                          <p className="text-xs font-semibold text-slate-800">{block.dm.name}</p>
+                          <p className="text-[10px] text-slate-400">{dmDelivered}/{dmEntries.length} delivered</p>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-xs font-bold text-slate-900">{statusDmTotalLitres(block.dm._id).toFixed(1)}L</p>
+                          <DmStatusPill status={block.status} />
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+
+                <div className="bg-white rounded-xl border border-slate-200 p-4">
+                  <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-2 flex items-center gap-1.5">
+                    <Package size={12} />
+                    Customer Lookup
+                  </p>
+                  <div className="flex items-center gap-2 border border-slate-200 rounded-lg px-2.5 py-2 mb-2 focus-within:border-blue-400 focus-within:ring-2 focus-within:ring-blue-100 transition-all">
+                    <Search size={13} className="text-slate-400 shrink-0" />
+                    <input
+                      value={statusSearch}
+                      onChange={(e) => setStatusSearch(e.target.value)}
+                      placeholder="Search customer…"
+                      className="flex-1 text-xs outline-none text-slate-700 placeholder:text-slate-400 bg-transparent"
+                    />
+                    {statusSearch && (
+                      <button onClick={() => setStatusSearch("")}>
+                        <X size={12} className="text-slate-400 hover:text-slate-600" />
+                      </button>
+                    )}
+                  </div>
+                  <div className="space-y-1 max-h-64 overflow-y-auto">
+                    {filteredEntries.map((entry) => {
+                      const productNames = entry.products
+                        .map((p) => `${p.quantity}L ${p.product.name}`)
+                        .join(", ");
+                      return (
+                        <div key={entry._id} className="flex items-start gap-2 py-1.5 border-b border-slate-50 last:border-0">
+                          <div className="bg-slate-100 text-slate-600 rounded-full w-5 h-5 flex items-center justify-center text-[8px] font-bold shrink-0 mt-0.5">
+                            {getInitials(entry.customer.name)}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-xs font-semibold text-slate-800 truncate">{entry.customer.name}</p>
+                            <p className="text-[10px] text-slate-400 truncate">{productNames}</p>
+                            <p className="text-[10px] text-blue-500">→ {entry.dm.name}</p>
+                          </div>
+                          <EntryStatusPill status={entry.status} />
+                        </div>
+                      );
+                    })}
+                    {filteredEntries.length === 0 && (
+                      <p className="text-xs text-slate-400 text-center py-3">No customers found</p>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // ── Render: BUILDER MODE (no dispatch exists for today yet) ──────────────
   return (
     <div className="min-h-screen bg-slate-50">
 
-      {/* ── Page header ── */}
       <div className="bg-white border-b border-slate-200 px-6 py-4">
         <div className="max-w-screen-xl mx-auto flex items-center justify-between">
           <div>
@@ -238,7 +674,6 @@ export default function Deliveries() {
             <p className="text-sm text-slate-500">{today}</p>
           </div>
 
-          {/* Steps */}
           <div className="hidden md:flex items-center gap-2">
             {[
               { n: 1, label: "Review Allocations" },
@@ -259,7 +694,7 @@ export default function Deliveries() {
 
           <div className="flex items-center gap-2">
             <button
-              onClick={fetchAll}
+              onClick={checkTodayDispatch}
               className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-slate-200 text-sm text-slate-600 hover:bg-slate-50 transition-colors"
             >
               <RefreshCw size={14} />
@@ -268,7 +703,7 @@ export default function Deliveries() {
             {step === 1 && (
               <button
                 onClick={() => setStep(2)}
-                disabled={isLoading || totalLitres === 0}
+                disabled={isBuilderLoading || totalLitres === 0}
                 className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-semibold hover:bg-blue-700 disabled:opacity-40 transition-colors"
               >
                 Review Dispatch
@@ -292,7 +727,7 @@ export default function Deliveries() {
         </div>
       </div>
 
-      {isLoading ? (
+      {isBuilderLoading ? (
         <div className="flex items-center justify-center h-64 gap-3">
           <Loader2 size={22} className="text-blue-600 animate-spin" />
           <span className="text-slate-500 text-sm">Loading dispatch data…</span>
@@ -313,14 +748,14 @@ export default function Deliveries() {
               </p>
               <div className="flex gap-3 mt-2">
                 <button
-                  onClick={() => { setStep(1); setDispatchStatus("idle"); }}
-                  className="px-4 py-2.5 border border-slate-200 rounded-lg text-sm font-semibold text-slate-600 hover:bg-slate-50"
+                  onClick={checkTodayDispatch}
+                  className="px-4 py-2.5 bg-blue-600 text-white rounded-lg text-sm font-semibold hover:bg-blue-700"
                 >
-                  New Dispatch
+                  View Dispatch Status
                 </button>
                 <button
                   onClick={() => navigate("/owner")}
-                  className="px-4 py-2.5 bg-blue-600 text-white rounded-lg text-sm font-semibold hover:bg-blue-700"
+                  className="px-4 py-2.5 border border-slate-200 rounded-lg text-sm font-semibold text-slate-600 hover:bg-slate-50"
                 >
                   Back to Dashboard
                 </button>
@@ -335,7 +770,6 @@ export default function Deliveries() {
               {/* ── LEFT COLUMN: Summary cards ── */}
               <div className="col-span-3 space-y-4">
 
-                {/* Date card */}
                 <div className="bg-blue-600 rounded-xl p-4 text-white">
                   <p className="text-blue-200 text-xs font-medium mb-1">Dispatching for</p>
                   <p className="text-base font-bold leading-tight">
@@ -346,7 +780,6 @@ export default function Deliveries() {
                   </p>
                 </div>
 
-                {/* Totals */}
                 <div className="bg-white rounded-xl border border-slate-200 p-4 space-y-3">
                   <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide">
                     Today's Totals
@@ -375,7 +808,6 @@ export default function Deliveries() {
                   </div>
                 </div>
 
-                {/* Products reference */}
                 <div className="bg-white rounded-xl border border-slate-200 p-4 space-y-2">
                   <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1">
                     Products
@@ -393,7 +825,6 @@ export default function Deliveries() {
                   ))}
                 </div>
 
-                {/* Info box */}
                 <div className="flex items-start gap-2 bg-amber-50 border border-amber-200 rounded-xl p-3">
                   <Info size={14} className="text-amber-500 shrink-0 mt-0.5" />
                   <p className="text-xs text-amber-700 leading-relaxed">
@@ -427,7 +858,6 @@ export default function Deliveries() {
                         isExpanded ? "border-blue-200 shadow-sm" : "border-slate-200"
                       }`}
                     >
-                      {/* DM header row */}
                       <button
                         onClick={() => setExpandedDm(isExpanded ? null : dm._id)}
                         className="w-full flex items-center gap-3 px-4 py-3.5 text-left"
@@ -444,7 +874,6 @@ export default function Deliveries() {
                           </p>
                         </div>
 
-                        {/* Summary pills */}
                         <div className="hidden sm:flex items-center gap-3 mr-2">
                           <div className="text-center">
                             <p className="text-sm font-bold text-slate-900">{dmTotalLtr.toFixed(1)} L</p>
@@ -462,11 +891,9 @@ export default function Deliveries() {
                         }
                       </button>
 
-                      {/* Expanded: product qty controls + customer list */}
                       {isExpanded && (
                         <div className="border-t border-slate-100">
 
-                          {/* Product allocation controls */}
                           <div className="px-4 py-3 bg-slate-50 space-y-3">
                             <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide">
                               Product Quantities for Today
@@ -497,7 +924,6 @@ export default function Deliveries() {
                                     </div>
                                   </div>
 
-                                  {/* Qty stepper */}
                                   <div className="flex items-center gap-1.5 shrink-0">
                                     <button
                                       onClick={() => adjustQty(dm._id, product._id, -0.5)}
@@ -538,7 +964,6 @@ export default function Deliveries() {
                             })}
                           </div>
 
-                          {/* Customers under this DM */}
                           <div className="px-4 py-3 border-t border-slate-100">
                             <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-2">
                               Customers ({custCount})
@@ -560,7 +985,6 @@ export default function Deliveries() {
                                     </div>
                                     <div className="flex-1 min-w-0">
                                       <p className="text-xs font-semibold text-slate-800 truncate">{c.name}</p>
-                                      {/* <p className="text-[10px] text-slate-400 truncate">{c.address}</p> */}
                                     </div>
                                     <span className="text-[10px] text-slate-500 shrink-0">{productNames}</span>
                                   </div>
@@ -578,7 +1002,6 @@ export default function Deliveries() {
               {/* ── RIGHT COLUMN: Review panel ── */}
               <div className="col-span-3 space-y-4">
 
-                {/* Step 2: confirm summary */}
                 {step === 2 ? (
                   <div className="bg-white rounded-xl border border-slate-200 p-4 space-y-4">
                     <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide">
@@ -674,7 +1097,6 @@ export default function Deliveries() {
                   </div>
                 )}
 
-                {/* Customer lookup */}
                 <div className="bg-white rounded-xl border border-slate-200 p-4">
                   <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-2 flex items-center gap-1.5">
                     <Package size={12} />
