@@ -20,12 +20,11 @@ import {
   Info,
   Check,
 } from "lucide-react";
-
-// ── Replace with your actual service imports ───────────────────────────────
-// import { getAllDeliveryStaffService } from "../../api/Services/Owner/TeamServices";
-// import { getAllCustomersService }     from "../../api/Services/Owner/CustomerServices";
-// import { getProductsService }         from "../../api/Services/Owner/ProductServices";
-// import { createDispatchService }      from "../../api/Services/Owner/DispatchServices";
+import { avatarPalette as avatarColors, getInitials } from "../../utils/AvatarPalletesAndGetInitials";
+import { getProducts } from "../../api/Services/Owner/ProductServices";
+import { getAllCustomers } from "../../api/Services/Owner/CustomerServices";
+import { getAllDms } from "../../api/Services/Owner/DmServices";
+import { createDispatchService } from "../../api/Services/Owner/DispatchServices";
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -35,6 +34,7 @@ type Product = {
   price: number;
   unit: string;
   image?: string;
+  quantity:number;
 };
 
 type Customer = {
@@ -42,20 +42,19 @@ type Customer = {
   name: string;
   mobile: string;
   address: string;
-  assignedDmId: string;
-  products: { productId: string; quantity: number }[];
+  assignedDm: {_id:string};
+  products: Product[];
 };
 
 type DM = {
   _id: string;
   name: string;
   mobile: string;
-  zone: string;
 };
 
 // Per-DM dispatch: product quantities (can override defaults)
 type ProductAllocation = {
-  productId: string;
+  _id: string;
   quantity: number; // litres
 };
 
@@ -66,54 +65,16 @@ type DMDispatch = {
 
 type DispatchStatus = "idle" | "submitting" | "success" | "error";
 
-// ── Mock data — delete and replace with API ────────────────────────────────
-
-const MOCK_PRODUCTS: Product[] = [
-  { _id: "p1", name: "Cow Milk",     price: 60, unit: "L" },
-  { _id: "p2", name: "Buffalo Milk", price: 75, unit: "L" },
-  { _id: "p3", name: "Organic Milk", price: 90, unit: "L" },
-];
-
-const MOCK_DMS: DM[] = [
-  { _id: "dm1", name: "Ravi Kumar",    mobile: "98760 11111", zone: "Zone A" },
-  { _id: "dm2", name: "Arjun Singh",   mobile: "98760 22222", zone: "Zone B" },
-  { _id: "dm3", name: "Sita Devi",     mobile: "98760 33333", zone: "Zone C" },
-  { _id: "dm4", name: "Mahesh Yadav",  mobile: "98760 44444", zone: "Zone D" },
-];
-
-const MOCK_CUSTOMERS: Customer[] = [
-  { _id: "c1",  name: "Venkata Rao",    mobile: "98761 23456", address: "H-7, Laxmi Colony",      assignedDmId: "dm1", products: [{ productId: "p1", quantity: 2 }] },
-  { _id: "c2",  name: "Sridevi Kumari", mobile: "98762 34567", address: "Flat 203, MG Nagar",      assignedDmId: "dm1", products: [{ productId: "p2", quantity: 1 }] },
-  { _id: "c3",  name: "Rama Krishna",   mobile: "98763 45678", address: "House 9, NTR Colony",     assignedDmId: "dm1", products: [{ productId: "p1", quantity: 1.5 }] },
-  { _id: "c4",  name: "Anitha Reddy",   mobile: "98764 56789", address: "F-5, Green Valley",       assignedDmId: "dm2", products: [{ productId: "p3", quantity: 1 }] },
-  { _id: "c5",  name: "Mohan Prasad",   mobile: "98765 67890", address: "B-12, NTR Colony",        assignedDmId: "dm2", products: [{ productId: "p1", quantity: 2 }] },
-  { _id: "c6",  name: "Padma Devi",     mobile: "98766 78901", address: "Plot 12, Nehru Nagar",    assignedDmId: "dm2", products: [{ productId: "p2", quantity: 1.5 }] },
-  { _id: "c7",  name: "Suresh Goud",    mobile: "98767 89012", address: "D-3, Ambedkar Colony",    assignedDmId: "dm3", products: [{ productId: "p1", quantity: 1 }] },
-  { _id: "c8",  name: "Lakshmi Bai",    mobile: "98768 90123", address: "Plot 8, Gandhi Nagar",    assignedDmId: "dm3", products: [{ productId: "p2", quantity: 2 }] },
-  { _id: "c9",  name: "Ravi Shankar",   mobile: "98769 01234", address: "Flat 5, Sunrise Apts",    assignedDmId: "dm4", products: [{ productId: "p1", quantity: 1 }] },
-  { _id: "c10", name: "Priya Kumari",   mobile: "98760 12345", address: "H-3, Nehru Colony",       assignedDmId: "dm4", products: [{ productId: "p3", quantity: 0.5 }] },
-];
-
-// ── Helpers ────────────────────────────────────────────────────────────────
-
-const avatarColors = [
-  "bg-blue-100 text-blue-700",
-  "bg-violet-100 text-violet-700",
-  "bg-emerald-100 text-emerald-700",
-  "bg-amber-100 text-amber-700",
-  "bg-rose-100 text-rose-700",
-];
-
-function getInitials(name: string) {
-  return name.split(" ").map((p) => p[0]).slice(0, 2).join("").toUpperCase();
-}
-
 // Compute default quantity for a DM+product: sum of all customers under that DM for that product
-function computeDefaultQty(dmId: string, productId: string, customers: Customer[]): number {
+function computeDefaultQty(dmId: string, _id: string, customers: Customer[]): number {
+  if(!customers){
+    return 0
+  }
+
   return customers
-    .filter((c) => c.assignedDmId === dmId)
+    .filter((c) => c.assignedDm._id === dmId)
     .flatMap((c) => c.products)
-    .filter((p) => p.productId === productId)
+    .filter((p) => p._id === _id)
     .reduce((sum, p) => sum + p.quantity, 0);
 }
 
@@ -122,7 +83,6 @@ const today = new Date().toLocaleDateString("en-IN", {
 });
 
 // ── Step indicator ─────────────────────────────────────────────────────────
-
 function StepBadge({ n, active, done }: { n: number; active: boolean; done: boolean }) {
   return (
     <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold shrink-0 transition-colors ${
@@ -141,20 +101,21 @@ export default function Deliveries() {
   const navigate = useNavigate();
 
   // Data
-  const [products,  setProducts]  = useState<Product[]>([]);
-  const [dms,       setDms]       = useState<DM[]>([]);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [dms,setDms] = useState<DM[]>([]);
   const [customers, setCustomers] = useState<Customer[]>([]);
 
   // UI state
   const [loading, setLoading] = useState({
     products: false, dms: false, customers: false,
   });
+
   const [step,           setStep]           = useState<1 | 2 | 3>(1);
-  const [expandedDm,     setExpandedDm]     = useState<string | null>(null);
-  const [customerSearch, setCustomerSearch] = useState("");
+  const [expandedDm,     setExpandedDm]     = useState<string | null>(null); //id of expanded dm
+  const [customerSearch, setCustomerSearch] = useState(""); //for searching customers
   const [dispatchStatus, setDispatchStatus] = useState<DispatchStatus>("idle");
 
-  // Dispatch data: dmId → productId → quantity
+  // Dispatch data: dmId → _id → quantity
   const [dispatches, setDispatches] = useState<Record<string, Record<string, number>>>({});
 
   // ── Fetch all data ───────────────────────────────────────────────────────
@@ -165,16 +126,17 @@ export default function Deliveries() {
   const fetchAll = async () => {
     setLoading({ products: true, dms: true, customers: true });
     try {
-      // const [p, d, c] = await Promise.all([
-      //   getProductsService(),
-      //   getAllDeliveryStaffService(),
-      //   getAllCustomersService(),
-      // ]);
-      // setProducts(p); setDms(d); setCustomers(c);
-      await new Promise((r) => setTimeout(r, 600));
-      setProducts(MOCK_PRODUCTS);
-      setDms(MOCK_DMS);
-      setCustomers(MOCK_CUSTOMERS);
+      setLoading((prev)=>{
+        return {...prev, products:true, dms:true, customers:true}
+      })
+
+      let req = await getProducts();
+      let getallcustomersreq = await getAllCustomers();
+      let getalldmssreq = await getAllDms();
+      setProducts(req);
+      setDms(getalldmssreq);
+      setCustomers(getallcustomersreq);
+
     } catch (err) {
       console.error("Error fetching dispatch data:", err);
     } finally {
@@ -196,17 +158,19 @@ export default function Deliveries() {
     setDispatches(init);
   }, [dms, products, customers]);
 
+
+
   // ── Qty controls ─────────────────────────────────────────────────────────
-  const setQty = (dmId: string, productId: string, value: number) => {
+  const setQty = (dmId: string, _id: string, value: number) => {
     setDispatches((prev) => ({
       ...prev,
-      [dmId]: { ...prev[dmId], [productId]: Math.max(0, value) },
+      [dmId]: { ...prev[dmId], [_id]: Math.max(0, value) },
     }));
   };
 
-  const adjustQty = (dmId: string, productId: string, delta: number) => {
-    const current = dispatches[dmId]?.[productId] ?? 0;
-    setQty(dmId, productId, Math.round((current + delta) * 2) / 2);
+  const adjustQty = (dmId: string, _id: string, delta: number) => {
+    const current = dispatches[dmId]?.[_id] ?? 0;
+    setQty(dmId, _id, Math.round((current + delta) * 2) / 2);
   };
 
   // ── Derived totals ────────────────────────────────────────────────────────
@@ -218,8 +182,9 @@ export default function Deliveries() {
   const totalLitres = totalPerProduct.reduce((s, p) => s + p.total, 0);
   const totalValue  = totalPerProduct.reduce((s, p) => s + p.total * p.price, 0);
 
-  const dmCustomerCount = (dmId: string) =>
-    customers.filter((c) => c.assignedDmId === dmId).length;
+  const dmCustomerCount = (dmId: string) => {
+    return customers.filter((c) => c.assignedDm._id === dmId).length;
+  }
 
   const dmTotal = (dmId: string) =>
     products.reduce((s, p) => s + (dispatches[dmId]?.[p._id] ?? 0), 0);
@@ -230,22 +195,25 @@ export default function Deliveries() {
   // ── Submit ────────────────────────────────────────────────────────────────
   const handleDispatch = async () => {
     setDispatchStatus("submitting");
-    try {
-      // const payload = dms.map((dm) => ({
-      //   dmId: dm._id,
-      //   allocations: products.map((p) => ({
-      //     productId: p._id,
-      //     quantity: dispatches[dm._id]?.[p._id] ?? 0,
-      //   })),
-      // }));
-      // await createDispatchService(payload);
-      await new Promise((r) => setTimeout(r, 1000));
+    try{
+      const payload = dms.map((dm) => ({
+        dmId: dm._id,
+        allocations: products
+        .filter((p)=> (dispatches[dm._id]?.[p._id] ?? 0) > 0)
+        .map((p)=>({
+            productId:p._id,
+            quantity:dispatches[dm._id]?.[p._id] ?? 0
+        }))
+      }));
+      console.log("123")
+      await createDispatchService(payload);
+      console.log("456")
       setDispatchStatus("success");
       setStep(3);
-    } catch {
+    }catch{
       setDispatchStatus("error");
     }
-  };
+};
 
   const isLoading = loading.products || loading.dms || loading.customers;
 
@@ -450,7 +418,7 @@ export default function Deliveries() {
                   const custCount   = dmCustomerCount(dm._id);
                   const dmTotalLtr  = dmTotal(dm._id);
                   const dmTotalVal  = dmValue(dm._id);
-                  const dmCustomers = customers.filter((c) => c.assignedDmId === dm._id);
+                  const dmCustomers = customers.filter((c) => c.assignedDm._id === dm._id);
 
                   return (
                     <div
@@ -470,9 +438,6 @@ export default function Deliveries() {
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2">
                             <p className="text-sm font-semibold text-slate-900">{dm.name}</p>
-                            <span className="text-[10px] bg-slate-100 text-slate-500 px-2 py-0.5 rounded-full font-medium">
-                              {dm.zone}
-                            </span>
                           </div>
                           <p className="text-xs text-slate-500 mt-0.5">
                             {dm.mobile} · {custCount} customers
@@ -582,7 +547,7 @@ export default function Deliveries() {
                               {dmCustomers.map((c) => {
                                 const productNames = c.products
                                   .map((cp) => {
-                                    const p = products.find((p) => p._id === cp.productId);
+                                    const p = products.find((p) => p._id === cp._id);
                                     return p ? `${cp.quantity}L ${p.name}` : "";
                                   })
                                   .filter(Boolean)
@@ -595,7 +560,7 @@ export default function Deliveries() {
                                     </div>
                                     <div className="flex-1 min-w-0">
                                       <p className="text-xs font-semibold text-slate-800 truncate">{c.name}</p>
-                                      <p className="text-[10px] text-slate-400 truncate">{c.address}</p>
+                                      {/* <p className="text-[10px] text-slate-400 truncate">{c.address}</p> */}
                                     </div>
                                     <span className="text-[10px] text-slate-500 shrink-0">{productNames}</span>
                                   </div>
@@ -627,7 +592,6 @@ export default function Deliveries() {
                             {getInitials(dm.name)}
                           </div>
                           <p className="text-xs font-semibold text-slate-800">{dm.name}</p>
-                          <span className="text-[10px] text-slate-400 ml-auto">{dm.zone}</span>
                         </div>
                         {products.map((p) => {
                           const qty = dispatches[dm._id]?.[p._id] ?? 0;
@@ -731,11 +695,11 @@ export default function Deliveries() {
                     )}
                   </div>
                   <div className="space-y-1 max-h-52 overflow-y-auto">
-                    {filteredCustomers.slice(0, 8).map((c) => {
-                      const dm       = dms.find((d) => d._id === c.assignedDmId);
+                    {filteredCustomers.map((c) => {
+                      const dm = dms.find((d) => d._id === c.assignedDm._id);
                       const prodStr  = c.products
                         .map((cp) => {
-                          const p = products.find((p) => p._id === cp.productId);
+                          const p = products.find((p) => p._id === cp._id);
                           return p ? `${cp.quantity}L ${p.name}` : "";
                         })
                         .join(", ");
