@@ -29,3 +29,8 @@ export const currUserService = async () => {
     let req = await api.get('/auth/me');
     return req.data.data
 }
+
+export const getCustomerDeliveryByIdService = async (_id:string) => {
+    let req = await api.get(`/auth/${_id}`)
+    return req.data.data
+}

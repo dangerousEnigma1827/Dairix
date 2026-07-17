@@ -119,3 +119,12 @@ export const getMe = asyncHandler(async (req, res) => {
 
   res.json(new ApiResponse(200, user, "User fetched successfully"));
 });
+
+
+export const getUserFromId = asyncHandler(async (req, res) => {
+  const user = await User.findById(req.params._id).populate("assignedDm");
+  if (!user) {
+    throw new ApiError(404, "User not found");
+  }
+  res.json(new ApiResponse(200, user, "User fetched successfully"));
+});
