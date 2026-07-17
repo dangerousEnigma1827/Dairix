@@ -25,11 +25,12 @@ import {
   // updateDeliveryStatusService,
 } from "../../api/Services/Owner/DeliveryEntryServices";
 import { getCustomerDeliveryByIdService } from "../../api/Services/AuthServices";
+import { updateDeliveryEntryService } from "../../api/Services/Dm/DeliveryEntryServices";
 
 
 // ── Types — same DeliveryEntry shape used on the Dashboard ─────────────────
 
-type Customer = {
+type DeliveryEntry = {
   _id: string;
   name: string;
   mobile: string;
@@ -70,16 +71,9 @@ type PageState =
   | "error"
   | "not_found";
 
-type PaymentMethod = "cash" | "upi" | "account";
+// type PaymentMethod = "cash" | "upi" | "account";
 
-const paymentOptions: { key: PaymentMethod; label: string; icon: typeof Banknote }[] = [
-  { key: "cash",    label: "Cash",       icon: Banknote },
-  { key: "upi",     label: "UPI",        icon: Smartphone },
-  { key: "account", label: "On Account", icon: Wallet },
-];
-
-// Turn the address object into printable lines, dropping anything missing.
-function formatAddressLines(address?: Customer["address"]): string[] {
+function formatAddressLines(address?: DeliveryEntry["address"]): string[] {
   if (!address) return [];
 
   const line1 = [address.houseNo, address.street]
@@ -96,7 +90,6 @@ function formatAddressLines(address?: Customer["address"]): string[] {
 }
 
 // ── Main Page ────────────────────────────────────────────────────────────────
-
 export default function DMScanDeliver() {
   const navigate = useNavigate();
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -104,12 +97,11 @@ export default function DMScanDeliver() {
 
   const [pageState, setPageState]       = useState<PageState>("scanning");
   const [errorMessage, setErrorMessage] = useState("");
-  const [entry, setEntry]               = useState<Customer | null>(null);
-  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("cash");
+  const [entry, setEntry]               = useState<DeliveryEntry | null>(null);
 
   // ── Camera lifecycle: only runs the scanner while pageState === "scanning" ──
   useEffect(() => {
-  console.log("Scanner effect triggered. State:", pageState);
+  // console.log("Scanner effect triggered. State:", pageState);
 
   if (pageState !== "scanning") {
     console.log("Not scanning state, returning");
@@ -122,37 +114,19 @@ export default function DMScanDeliver() {
   }
 
   let cancelled = false;
-
-  // console.log("Creating ZXing reader...");
-
   const codeReader = new BrowserQRCodeReader();
-
-  // console.log("Starting camera...");
 
   codeReader
     .decodeFromVideoDevice(
       undefined,
       videoRef.current,
       (result, error, controls) => {
-
-        // console.log(
-        //   "video size:",
-        //   videoRef.current?.videoWidth,
-        //   videoRef.current?.videoHeight
-        // );
-
-        // console.log(
-        //   "current stream:",
-        //   videoRef.current?.srcObject
-        // );
-
         if(result && !cancelled){
           console.log("QR FOUND:", result.getText());
           cancelled = true;
           controls.stop();
           handleScan(result.getText());
         }
-
       }
     )
     .then((controls) => {
@@ -190,7 +164,6 @@ export default function DMScanDeliver() {
             return;
         }
         setEntry(res);
-        setPaymentMethod("cash");
         setPageState("found");
     }catch(err){
         console.log(
@@ -209,12 +182,8 @@ export default function DMScanDeliver() {
     if (!entry) return;
     setPageState("submitting");
     try {
-      // await updateDeliveryStatusService(entry._id, status);
-      setEntry((prev) =>
-        prev
-          ? { ...prev, status, deliveredAt: status === "delivered" ? new Date().toISOString() : prev.deliveredAt }
-          : prev
-      );
+      console.log(entry._id)
+      await updateDeliveryEntryService(entry._id)
       setPageState("success");
     } catch (err) {
       console.error("Error updating delivery status:", err);
@@ -226,7 +195,6 @@ export default function DMScanDeliver() {
   const resetToScan = () => {
     setEntry(null);
     setErrorMessage("");
-    setPaymentMethod("cash");
     setPageState("scanning");
   };
 
@@ -475,55 +443,55 @@ export default function DMScanDeliver() {
 
 
 
-{/* ── Success ── */}
-{pageState === "success" && entry && (
+        {/* ── Success ── */}
+        {pageState === "success" && entry && (
 
-  <div className="flex flex-col items-center justify-center py-20 gap-4 text-center">
+          <div className="flex flex-col items-center justify-center py-20 gap-4 text-center">
 
-    <div className="bg-emerald-50 p-4 rounded-full">
-      <CheckCircle2 size={36} className="text-emerald-500"/>
-    </div>
-
-
-    <div>
-
-      <p className="text-lg font-bold text-slate-900">
-        Delivery Recorded
-      </p>
-
-      <p className="text-sm text-slate-500 mt-1 max-w-xs">
-        {productSummary} delivered to {entry.name}.
-      </p>
-
-    </div>
+            <div className="bg-emerald-50 p-4 rounded-full">
+              <CheckCircle2 size={36} className="text-emerald-500"/>
+            </div>
 
 
-    <div className="flex gap-3 mt-2">
+            <div>
 
-      <button
-        onClick={resetToScan}
-        className="px-4 py-2.5 bg-blue-600 text-white rounded-xl text-sm font-semibold flex items-center gap-1.5"
-      >
+              <p className="text-lg font-bold text-slate-900">
+                Delivery Recorded
+              </p>
 
-        <QrCode size={15}/>
-        Scan Next Customer
+              <p className="text-sm text-slate-500 mt-1 max-w-xs">
+                {productSummary} delivered to {entry.name}.
+              </p>
 
-      </button>
-
-
-      <button
-        onClick={() => navigate("/dm")}
-        className="px-4 py-2.5 border border-slate-200 rounded-xl text-sm font-semibold text-slate-600"
-      >
-        Dashboard
-      </button>
-
-    </div>
+            </div>
 
 
-  </div>
+            <div className="flex gap-3 mt-2">
 
-)}
+              <button
+                onClick={resetToScan}
+                className="px-4 py-2.5 bg-blue-600 text-white rounded-xl text-sm font-semibold flex items-center gap-1.5"
+              >
+
+                <QrCode size={15}/>
+                Scan Next Customer
+
+              </button>
+
+
+              <button
+                onClick={() => navigate("/dm")}
+                className="px-4 py-2.5 border border-slate-200 rounded-xl text-sm font-semibold text-slate-600"
+              >
+                Dashboard
+              </button>
+
+            </div>
+
+
+          </div>
+
+        )}
         
           
 

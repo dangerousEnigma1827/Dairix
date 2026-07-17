@@ -12,15 +12,12 @@ export const getDmTodayDeliveries = async (req, res) => {
         const end = new Date();
         end.setHours(23,59,59,999);
 
-
         const dispatch = await Dispatch.findOne({
             createdAt: {
                 $gte: start,
                 $lte: end
             }
         });
-
-        console.log("dispatches are " , dispatch)
 
         if (!dispatch) {
             return res.status(200).json({
@@ -34,9 +31,6 @@ export const getDmTodayDeliveries = async (req, res) => {
         })
         .populate("customer", "name mobile address")
         .populate("products.product", "name price unit");
-
-        console.log("deliveries are ", deliveries)
-
 
         return res.status(200).json({
             deliveries
