@@ -146,8 +146,12 @@ export default function CustomerQRPage() {
             <div className="relative">
               <QRCodeCanvas
                 id="canvasId"
-                value={customer?._id}
-                size={200}/>
+                value={customer._id}
+                size={320}
+                level="H"
+                includeMargin={true}
+
+              />
             </div>
            
 

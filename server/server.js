@@ -8,7 +8,7 @@ const startServer = async () => {
   await dbConnect();
   const server = http.createServer(app);
 
-  server.listen(PORT, () => {
+  server.listen(PORT, "0.0.0.0", () => {
     console.log(`[Dairix] running on port ${PORT} — ${process.env.NODE_ENV} mode`);
   });
 
