@@ -30,6 +30,8 @@ import DMDetails from './pages/Owner/DeliveryStaff/DMDetails'
 import CustomerSubscriptions from './pages/Customer/CustomerSubscriptions'
 import CustomerQRPage from './pages/Customer/CustomerQRPage'
 import DMScanDeliver from './pages/Dm/DmScanDeliver'
+import DeliveryHistory from './pages/Dm/DeliveryHistory'
+import CustomerList from './pages/Dm/CustomerList'
 
 
 function App() {
@@ -81,6 +83,23 @@ function App() {
           }
         />
 
+        <Route
+          path="/dm/history"
+          element={
+            // <ProtectedRoute allowedRoles={["dm"]}>
+              <DeliveryHistory/>
+            // </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/dm/customers"
+          element={
+            // <ProtectedRoute allowedRoles={["dm"]}>
+              <CustomerList/>
+            // </ProtectedRoute>
+          }
+        />
 
 
 

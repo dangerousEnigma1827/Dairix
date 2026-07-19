@@ -4,8 +4,10 @@ import DeliveryEntry from "../../models/deliveryEntryModels.js";
 
 export const getDmTodayDeliveries = async (req, res) => {
     try {
-
+        console.log("a")
+        console.log(req.user)
         const dmId = req.user._id; 
+
         const start = new Date();
         start.setHours(0,0,0,0);
 
@@ -18,6 +20,7 @@ export const getDmTodayDeliveries = async (req, res) => {
                 $lte: end
             }
         });
+
 
         if (!dispatch) {
             return res.status(200).json({

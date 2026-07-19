@@ -2,7 +2,6 @@ import Dispatch from "../../models/dispatchModels.js";
 import DeliveryEntry from "../../models/deliveryEntryModels.js";
 
 export const updateDeliveryStatus = async(req,res)=>{
-
     try {
         const {customerId}=req.params;
         const dmId=req.user._id;
@@ -14,9 +13,6 @@ export const updateDeliveryStatus = async(req,res)=>{
         const endOfDay = new Date();
         endOfDay.setHours(23,59,59,999);
 
-        console.log(startOfDay, endOfDay)
-
-
         const dispatch = await Dispatch.findOne({
             date:{
                 $gte:startOfDay,
@@ -24,15 +20,12 @@ export const updateDeliveryStatus = async(req,res)=>{
             }
         });
 
-        console.log(dispatch)
-
 
         if(!dispatch){
             return res.status(404).json({
                 message:"No dispatch today"
             });
         }
-
 
         const entry = await DeliveryEntry.findOneAndUpdate(
             {
@@ -48,7 +41,6 @@ export const updateDeliveryStatus = async(req,res)=>{
                 new:true
             }
         );
-
 
         if(!entry){
             return res.status(404).json({
