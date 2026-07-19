@@ -132,8 +132,6 @@ const dotColor: Record<DailyStatus, string> = {
   pending:   "bg-slate-400",
 };
 
-
-
 export default function CustomerDashboard() {
   const navigate = useNavigate();
   const [todayStatus, setTodayStatus] = useState<DailyStatus>("pending");
