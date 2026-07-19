@@ -465,14 +465,14 @@ export default function OwnerDashboard() {
                       tickLine={false}
                     />
                     <YAxis tick={{ fontSize: 11, fill: "#94a3b8" }} axisLine={false} tickLine={false} />
-                    {/* <Tooltip
+                    <Tooltip
                       contentStyle={{
                         borderRadius: 12,
                         border: "1px solid #e2e8f0",
                         fontSize: 12,
                       }}
-                      formatter={(value: number) => [`${value} L`, "Volume"]}
-                    /> */}
+                      // formatter={(value: number) => [`${value} L`, "Volume"]}
+                    />
                     <Area
                       type="monotone"
                       dataKey="volume"
@@ -536,7 +536,7 @@ export default function OwnerDashboard() {
                 <>
                   <ResponsiveContainer width="100%" height={180}>
                     <PieChart>
-                      {/* <Pie
+                      <Pie
                         data={pieData}
                         dataKey="value"
                         nameKey="name"
@@ -550,8 +550,8 @@ export default function OwnerDashboard() {
                       </Pie>
                       <Tooltip
                         contentStyle={{ borderRadius: 12, border: "1px solid #e2e8f0", fontSize: 12 }}
-                        formatter={(value: number) => [`${value} L`, ""]}
-                      /> */}
+                        // formatter={(value: number) => [`${value} L`, ""]}
+                      />
                     </PieChart>
                   </ResponsiveContainer>
                   <div className="space-y-2 mt-2">

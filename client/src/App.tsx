@@ -26,12 +26,12 @@ import DeliveryStaff from './pages/Owner/DeliveryStaff'
 import Deliveries from './pages/Owner/Deliveries'
 import Customers from './pages/Owner/Customers'
 import AssignDM from './pages/Owner/AssignDM'
-import DMDetails from './pages/Owner/DeliveryStaff/DMDetails'
 import CustomerSubscriptions from './pages/Customer/CustomerSubscriptions'
 import CustomerQRPage from './pages/Customer/CustomerQRPage'
 import DMScanDeliver from './pages/Dm/DmScanDeliver'
 import DeliveryHistory from './pages/Dm/DeliveryHistory'
 import CustomerList from './pages/Dm/CustomerList'
+import DmDetails from './pages/Owner/DMDetails'
 
 
 function App() {
@@ -57,7 +57,7 @@ function App() {
             <Route index element={<OwnerDashboard />} />
             <Route path="products" element={<Products />} />
             <Route path="delivery-staff" element={<DeliveryStaff />} />
-            <Route path="delivery-staff/:dmId" element={<DMDetails />} />
+            <Route path="delivery-staff/:dmId" element={<DmDetails />} />
             <Route path="deliveries" element={<Deliveries />} />
             <Route path="customers" element={<Customers />} />
             <Route path="customers/:customerId/assign-dm" element={<AssignDM />} />
