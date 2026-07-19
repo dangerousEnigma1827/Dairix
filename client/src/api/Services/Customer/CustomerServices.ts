@@ -7,3 +7,8 @@ export const updateSubsService = async (products: Subscription[], customerId:str
     const req=await api.post(`/customers/${customerId}/products/manage`, products)
     return req
 }
+
+export const getTodaysCustomerDeliveryStatus = async () => {
+    const req=await api.get('/customers/deliveries/today')
+    return req.data
+}

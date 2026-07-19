@@ -23,9 +23,10 @@ import type { AddressType } from "../../Types/Customer";
 import LoadingPage from "../LoadingPage";
 import LoadingPageNoReturn from "../LoadingPageNoReturn";
 import { avatarPalette, getInitials } from "../../utils/AvatarPalletesAndGetInitials";
+import { getTodaysCustomerDeliveryStatus } from "../../api/Services/Customer/CustomerServices";
 
 
-type DailyStatus = "delivered" | "skipped" | "paused" | "pending";
+type DailyStatus = "delivered" | "skipped" | "pending";
 
 type Address = AddressType
 
@@ -78,7 +79,7 @@ function buildWeek(): WeekDay[] {
 
   // Fake statuses for demo — replace with real delivery data
   const fakeStatus: DailyStatus[] = [
-    "delivered", "delivered", "delivered", "skipped", "delivered", "delivered", "pending",
+    "delivered", "delivered", "delivered", "skipped", "delivered", "delivered",
   ];
 
   return Array.from({ length: 7 }, (_, i) => {
@@ -97,7 +98,6 @@ const WEEK = buildWeek();
 
 // ────────────────────────────────────────────────────────────────────────────
 
-const TODAY_STATUS: DailyStatus = "delivered"; // replace with real value
 
 const statusConfig = {
   delivered: {
@@ -116,14 +116,6 @@ const statusConfig = {
     label: "Not delivered today",
     sub: "Marked skipped by your DM",
   },
-  paused: {
-    icon: Clock,
-    color: "text-amber-500",
-    bg: "bg-amber-50",
-    border: "border-amber-200",
-    label: "Paused today",
-    sub: "You requested a pause",
-  },
   pending: {
     icon: Clock,
     color: "text-slate-400",
@@ -137,22 +129,22 @@ const statusConfig = {
 const dotColor: Record<DailyStatus, string> = {
   delivered: "bg-emerald-500",
   skipped:   "bg-rose-400",
-  paused:    "bg-amber-400",
-  pending:   "bg-slate-200",
+  pending:   "bg-slate-400",
 };
 
 
 
 export default function CustomerDashboard() {
   const navigate = useNavigate();
-  const todayCfg = statusConfig[TODAY_STATUS];
-  const TodayIcon = todayCfg.icon;
+  const [todayStatus, setTodayStatus] = useState<DailyStatus>("pending");
+  const todayStatusConfig = statusConfig[todayStatus];
+  const TodayIcon = todayStatusConfig.icon;
 
   const [loading, setLoading] = useState({
-    customerLoading:false
+    customerLoading:false,
+    statusLoading:false
   })
 
-  //states
   const [customer, setCustomer]=useState<CustomerType|null>(null)
 
   const handleGetCurrentUser = async () =>{
@@ -173,14 +165,20 @@ export default function CustomerDashboard() {
     }
   }
 
+  const handlleGetTodaysStatus = async () => {
+    let req = await getTodaysCustomerDeliveryStatus();
+    setTodayStatus(req.status)
+    // console.log(req)
+  }
+
   useEffect(()=>{
     handleGetCurrentUser()
+    handlleGetTodaysStatus()
   },[])
 
  
   if(loading.customerLoading || !customer){
     console.log(customer)
-    // return <p>Wair</p>
     return <LoadingPageNoReturn/>
   }
 
@@ -244,15 +242,12 @@ export default function CustomerDashboard() {
           </div>
 
           {/* Today's delivery status */}
-          <div className={`rounded-2xl border ${todayCfg.border} ${todayCfg.bg} p-4`}>
-            <p className="text-xs font-medium text-slate-500 mb-2">TODAY'S DELIVERY</p>
-            <div className="flex items-center gap-3">
-              <TodayIcon size={26} className={todayCfg.color} />
-              <div>
-                <p className={`font-semibold ${todayCfg.color}`}>{todayCfg.label}</p>
-                <p className="text-xs text-slate-500 mt-0.5">{todayCfg.sub}</p>
-              </div>
-            </div>
+          <div className={`rounded-2xl border ${todayStatusConfig.border} ${todayStatusConfig.bg} p-4`}>
+            <TodayIcon size={26} className={todayStatusConfig.color} />
+            <p className={`font-semibold ${todayStatusConfig.color}`}>
+              {todayStatusConfig.label}
+            </p>
+            <p>{todayStatusConfig.sub}</p>
           </div>
 
           {/* Stats row */}
