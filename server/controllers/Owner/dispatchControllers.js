@@ -4,7 +4,6 @@ import DeliveryEntry from "../../models/deliveryEntryModels.js";
 
 export const createDispatch = async(req,res)=>{
     try{
-        console.log(req.body)
         const allocations=req.body;
         const dispatch = await Dispatch.create({
             deliveries: allocations.map((item)=>({

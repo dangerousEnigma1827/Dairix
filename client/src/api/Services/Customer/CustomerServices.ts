@@ -13,3 +13,7 @@ export const getTodaysCustomerDeliveryStatus = async () => {
     return req.data
 }
 
+export const getDeliveryTrackOfAMonth = async (month:number, year:number) => {
+    const req = await api.get(`/customers/deliveries/monthTrack?month=${month}&year=${year}`)
+    return req.data
+}

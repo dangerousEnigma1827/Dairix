@@ -10,7 +10,6 @@ export const getDmCustomers = async(req,res)=>{
         })
         .select("-password");
 
-        console.log(customers)
         return res.status(200).json({
             customers
         });

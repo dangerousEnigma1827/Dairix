@@ -10,7 +10,8 @@ import {
   TrendingUp,
   Package,
 } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useMemo, useState , useEffect} from "react";
+import { getDeliveryTrackOfAMonth } from "../../api/Services/Customer/CustomerServices";
 
 // ────────────────────────────────────────────────────────────────────────────
 // Types
@@ -102,6 +103,25 @@ export default function DeliveryTracker() {
 
   // Most recent first, excluding upcoming days with no history yet
   const log = [...days].filter((d) => d.status !== "pending").reverse();
+
+  const getDeliveryTrack = async ()=>{
+    const today = new Date();
+    const selectedMonth = new Date(
+      today.getFullYear(),
+      today.getMonth() + monthOffset,
+      1
+    );
+
+    const month = selectedMonth.getMonth() + 1;
+    const year = selectedMonth.getFullYear();
+
+    const req=await getDeliveryTrackOfAMonth(month,year);
+    console.log(req)
+  }
+
+  useEffect(() => {
+    getDeliveryTrack();
+  }, [monthOffset]);
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col">

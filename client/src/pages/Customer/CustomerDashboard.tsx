@@ -173,8 +173,6 @@ export default function CustomerDashboard() {
         return "skipped"
       }
     })
-
-    console.log(req.status)
     let d=new Date(req.deliveredAt)
     setTodayDeliveryTime(d)
   }
@@ -186,6 +184,7 @@ export default function CustomerDashboard() {
 
  
   if(loading.customerLoading || !customer){
+    console.log(customer)
     return <LoadingPageNoReturn/>
   }
 
@@ -194,7 +193,12 @@ export default function CustomerDashboard() {
     (acc, s) => acc + s.quantity * s.price * 30,
     0
   );
-  
+
+  const todaysItemCount = customer.products?.length ?? 0;
+  const todaysOrderValue = customer.products?.reduce(
+    (acc, p) => acc + p.quantity * p.price,
+    0
+  ) ?? 0;
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col">
@@ -252,7 +256,7 @@ export default function CustomerDashboard() {
           <div className={`rounded-2xl border ${todayStatusConfig.border} ${todayStatusConfig.bg} p-4`}>
             <div className="flex items-center gap-3">
 
-              <div className={`w-11 h-11 rounded-xl ${todayStatusConfig.bg} flex items-center justify-center`}>
+              <div className={`w-11 h-11 rounded-xl bg-white flex items-center justify-center ring-1 ring-black/5`}>
                 <TodayIcon size={24} className={todayStatusConfig.color} />
               </div>
 
@@ -262,57 +266,78 @@ export default function CustomerDashboard() {
                 </p>
 
                 <p className="text-xs text-slate-500 mt-0.5">
-                  {todayStatusConfig.sub} {" · "}
-                  {todayDeliveryTime ? 
-                  (todayDeliveryTime.toLocaleTimeString("en-IN", {
-                    hour: "2-digit",
-                    minute: "2-digit",
-                    hour12: true,
-                    timeZone: "Asia/Kolkata",
-                  })) : (<></>)}
+                  {todayStatusConfig.sub}
+                  {todayDeliveryTime && (
+                    <>
+                      {" · "}
+                      {todayDeliveryTime.toLocaleTimeString("en-IN", {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                        hour12: true,
+                        timeZone: "Asia/Kolkata",
+                      })}
+                    </>
+                  )}
                 </p>
               </div>
-
             </div>
 
-          {/* Delivered products */}
-            <div className="mt-4 space-y-2">
-
-              {(customer.products ?? []).map((p) => (
-                <div
-                  key={p.name}
-                  className="flex items-center gap-3 bg-white/70 rounded-xl p-3"
-                >
-
-                  <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center overflow-hidden shrink-0">
-                    {
-                      p.image ?
-                      <img
-                        src={p.image}
-                        alt={p.name}
-                        className="w-full h-full object-cover"
-                      />
-                      :
-                      <Milk size={18} className="text-blue-600"/>
-                    }
-                  </div>
-
-
-                  <div className="flex-1">
-                    <p className="text-sm font-semibold text-slate-800">
-                      {p.name}
-                    </p>
-
-                    <p className="text-xs text-slate-500">
-                      {p.quantity} {p.unit}
-                    </p>
-                  </div>
-
+            {/* Today's order — redesigned */}
+            {customer.products && customer.products.length > 0 && (
+              <div className="mt-4 pt-4 border-t border-black/5">
+                <div className="flex items-center justify-between mb-2.5">
+                  <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-wide">
+                    Today's Order · {todaysItemCount} item{todaysItemCount > 1 ? "s" : ""}
+                  </p>
+                  <p className="text-[11px] font-bold text-slate-500">
+                    ₹{todaysOrderValue.toLocaleString("en-IN")}
+                  </p>
                 </div>
-              ))}
 
-            </div>
+                <div className="space-y-1.5">
+                  {customer.products.map((p) => (
+                    <div
+                      key={p.name}
+                      className="flex items-center gap-3 bg-white rounded-xl p-2.5 ring-1 ring-black/5"
+                    >
+                      <div className="w-9 h-9 rounded-lg bg-blue-50 flex items-center justify-center overflow-hidden shrink-0">
+                        {p.image ? (
+                          <img
+                            src={p.image}
+                            alt={p.name}
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <Milk size={16} className="text-blue-600" />
+                        )}
+                      </div>
 
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-semibold text-slate-800 truncate">
+                          {p.name}
+                        </p>
+                        <p className="text-xs text-slate-400">
+                          ₹{p.price}/{p.unit}
+                        </p>
+                      </div>
+
+                      <div className="flex items-center gap-2 shrink-0">
+                        <span className="text-xs font-bold text-slate-600 bg-slate-50 px-2 py-1 rounded-lg">
+                          {p.quantity} {p.unit}
+                        </span>
+                        {todayStatus === "delivered" ? (
+                          <CheckCircle2 size={16} className="text-emerald-500 shrink-0" />
+                        ) : todayStatus === "skipped" ? (
+                          <XCircle size={16} className="text-rose-400 shrink-0" />
+                        ) : (
+                          <Clock size={16} className="text-slate-300 shrink-0" />
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Stats row */}
@@ -563,5 +588,3 @@ export default function CustomerDashboard() {
     </div>
   );
 }
-
-

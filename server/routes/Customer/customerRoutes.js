@@ -2,7 +2,7 @@ import express from "express";
 
 import validate from "../../middlewares/validateMiddlewares.js";
 import createDMSchema from "../../schemas/dmSchemas.js";
-import { getTodaysDeliveryStatus, updateCustomerSubs } from "../../controllers/Customer/customerControllers.js";
+import { getMonthlyDeliveryTrack, getTodaysDeliveryStatus, updateCustomerSubs } from "../../controllers/Customer/customerControllers.js";
 import { authenticate } from "../../middlewares/authMiddlewares.js";
 
 const router = express.Router();
@@ -11,6 +11,8 @@ const router = express.Router();
 router.post(`/:customerId/products/manage`, updateCustomerSubs);
 
 router.get('/deliveries/today', authenticate, getTodaysDeliveryStatus)
+
+router.get('/deliveries/monthTrack', authenticate, getMonthlyDeliveryTrack)
 
 
 export default router;
