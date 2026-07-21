@@ -166,7 +166,15 @@ export default function CustomerDashboard() {
 
   const handlleGetTodaysStatus = async () => {
     let req = await getTodaysCustomerDeliveryStatus();
-    setTodayStatus(req.status)
+    setTodayStatus(() => {
+      if(req.status=="delivered" || req.status=="pending"){
+        return req.status;
+      }else{
+        return "skipped"
+      }
+    })
+
+    console.log(req.status)
     let d=new Date(req.deliveredAt)
     setTodayDeliveryTime(d)
   }
@@ -178,7 +186,6 @@ export default function CustomerDashboard() {
 
  
   if(loading.customerLoading || !customer){
-    console.log(customer)
     return <LoadingPageNoReturn/>
   }
 

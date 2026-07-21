@@ -32,6 +32,7 @@ import DMScanDeliver from './pages/Dm/DmScanDeliver'
 import DeliveryHistory from './pages/Dm/DeliveryHistory'
 import CustomerList from './pages/Dm/CustomerList'
 import DmDetails from './pages/Owner/DMDetails'
+import DeliveryTracker from './pages/Customer/DeliveryTracker'
 
 
 function App() {
@@ -130,6 +131,14 @@ function App() {
           path="/customer/qrcode"
           element={
               <CustomerQRPage />
+          }
+        >
+        </Route>
+
+        <Route
+          path="customer/deliveries"
+          element={
+              <DeliveryTracker />
           }
         >
         </Route>
