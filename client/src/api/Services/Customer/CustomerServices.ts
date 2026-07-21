@@ -30,3 +30,13 @@ export const getMonthlyDeliveryTrack = async (
   return data;
 };
  
+ 
+export const getWeeklyDeliveryTrack = async (
+): Promise<MonthlyDeliveryEntry[]> => {
+  const { data } = await api.get<MonthlyDeliveryEntry[]>(
+    "/customers/deliveries/weekly",
+  )
+  console.log(data)
+  return data;
+};
+ 

@@ -107,3 +107,40 @@ export const getMonthlyDeliveryTrack = async (req, res) => {
         });
     }
 };
+
+export const getWeeklyDeliveryTrack = async (req, res) => {
+    try {
+        const userId = req.user._id;
+        const today = new Date();
+
+        const start = new Date(today);
+        start.setDate(today.getDate() - today.getDay()); // Sunday
+        start.setHours(0, 0, 0, 0);
+
+        const end = new Date(start);
+        end.setDate(start.getDate() + 6);
+        end.setHours(23, 59, 59, 999);
+
+        const deliveries = await DeliveryEntry.find({
+        customer: userId,
+        createdAt: {
+            $gte: start,
+            $lte: end
+        }
+        }).sort({ createdAt: 1 });
+
+        const response = deliveries.map((entry)=>({
+            date: entry.createdAt,
+            status: entry.status,
+            deliveredAt: entry.deliveredAt || null
+        }));
+
+        return res.status(200).json(response);
+
+    } catch (err) {
+        console.log(err);
+        return res.status(500).json({
+            message: "Server error"
+        });
+    }
+};

@@ -23,7 +23,7 @@ import type { AddressType } from "../../Types/Customer";
 import LoadingPage from "../LoadingPage";
 import LoadingPageNoReturn from "../LoadingPageNoReturn";
 import { avatarPalette, getInitials } from "../../utils/AvatarPalletesAndGetInitials";
-import { getTodaysCustomerDeliveryStatus } from "../../api/Services/Customer/CustomerServices";
+import { getTodaysCustomerDeliveryStatus, getWeeklyDeliveryTrack } from "../../api/Services/Customer/CustomerServices";
 
 
 type DailyStatus = "delivered" | "skipped" | "pending";
@@ -71,31 +71,38 @@ const CURRENT_BILL: Bill = {
 const STATS = { delivered: 14, skipped: 1, rate: 93 };
 
 // Build this week's delivery strip (Sun–Sat)
-function buildWeek(): WeekDay[] {
+function buildWeek(deliveryData: any[]): WeekDay[] {
   const days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
   const today = new Date();
   const start = new Date(today);
-  start.setDate(today.getDate() - today.getDay());
-
-  // Fake statuses for demo — replace with real delivery data
-  const fakeStatus: DailyStatus[] = [
-    "delivered", "delivered", "delivered", "skipped", "delivered", "delivered",
-  ];
+  start.setDate(today.getDate() - today.getDay()); // Sunday
 
   return Array.from({ length: 7 }, (_, i) => {
     const d = new Date(start);
     d.setDate(start.getDate() + i);
+
+    // Backend entries are shaped { date, status, deliveredAt } — match on `date`, not `createdAt`
+    const found = deliveryData.find((entry)=>{
+      const entryDate = new Date(entry.date);
+      return (
+        entryDate.getDate() === d.getDate() &&
+        entryDate.getMonth() === d.getMonth() &&
+        entryDate.getFullYear() === d.getFullYear()
+      );
+    });
+
     return {
       label: days[d.getDay()],
       date: d.getDate(),
-      isToday: d.toDateString() === today.toDateString(),
-      status: d <= today ? fakeStatus[i] : "pending",
+      isToday:
+        d.toDateString() === today.toDateString(),
+      status:
+        found ? found.status :
+        d <= today
+        ?"skipped":"pending"
     };
   });
 }
-
-const WEEK = buildWeek();
-
 // ────────────────────────────────────────────────────────────────────────────
 
 
@@ -138,6 +145,10 @@ export default function CustomerDashboard() {
   const todayStatusConfig = statusConfig[todayStatus];
   const [todayDeliveryTime, setTodayDeliveryTime]=useState<Date|null>(null);
   const TodayIcon = todayStatusConfig.icon;
+  const [weekData, setWeekData] = useState<any[]>([]);
+  
+  const WEEK = buildWeek(weekData);
+
   
 
   const [loading, setLoading] = useState({
@@ -154,7 +165,6 @@ export default function CustomerDashboard() {
 
     try{
       let req = await currUserService()
-      console.log(req)
       setCustomer(req)
     }catch(err:any){
       console.log("error getting customer details",err)
@@ -183,9 +193,17 @@ export default function CustomerDashboard() {
     handlleGetTodaysStatus()
   },[])
 
+  useEffect(() => {
+    const fetchWeek = async () => {
+        const data = await getWeeklyDeliveryTrack();
+        setWeekData(data);
+    };
+
+    fetchWeek();
+  }, []);
+
  
   if(loading.customerLoading || !customer){
-    console.log(customer)
     return <LoadingPageNoReturn/>
   }
 
