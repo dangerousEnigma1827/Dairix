@@ -27,6 +27,7 @@ export const updateDeliveryStatus = async(req,res)=>{
             });
         }
 
+        console.log(req.body)
         const entry = await DeliveryEntry.findOneAndUpdate(
             {
                 dispatch:dispatch._id,

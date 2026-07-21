@@ -73,7 +73,7 @@ const statusConfig: Record<
 > = {
   delivered: {
     label: "Delivered",
-    color: "text-emerald-600",
+    color: "text-emerald-500",
     bg: "bg-emerald-50",
     border: "border-emerald-200",
     icon: CheckCircle2,
@@ -82,7 +82,7 @@ const statusConfig: Record<
     label: "Skipped",
     color: "text-rose-500",
     bg: "bg-rose-50",
-    border: "border-rose-100",
+    border: "border-rose-200",
     icon: XCircle,
   },
   pending: {
@@ -96,12 +96,25 @@ const statusConfig: Record<
     label: "Paused",
     color: "text-amber-500",
     bg: "bg-amber-50",
-    border: "border-amber-100",
+    border: "border-amber-200",
     icon: Clock,
   },
 };
 
+// ── Helpers ─────────────────────────────────────────────────────────────────
 
+function formatAddress(address: DeliveryItem["customer"]["address"] | undefined) {
+  if (!address) return "";
+  return [address.houseNo, address.street, address.landmark].filter(Boolean).join(", ");
+}
+
+function getOrderTotal(products: DeliveryItem["products"]) {
+  return products.reduce((sum, p) => sum + p.quantity * p.product.price, 0);
+}
+
+function getOrderSummary(products: DeliveryItem["products"]) {
+  return products.map((p) => `${p.quantity}${p.product.unit} ${p.product.name}`).join(", ");
+}
 
 // ── Main Page ─────────────────────────────────────────────────────────────────
 export default function DeliveryDashboard() {
@@ -160,7 +173,11 @@ export default function DeliveryDashboard() {
   const delivered = deliveries?.filter((d) => d.status === "delivered").length;
   const skipped   = deliveries?.filter((d) => d.status === "skipped").length;
   const pending   = deliveries?.filter((d) => d.status === "pending").length;
-  const rate      = total > 0 ? Math.round((delivered / (total - pending)) * 100) || 0 : 0;
+  const completed = delivered + skipped;
+
+  const rate = total > 0
+  ? Math.round((completed / total) * 100)
+  : 0;
 
   const recentDeliveries = [...deliveries]
     .filter((d) => d.status !== "pending")
@@ -233,7 +250,7 @@ export default function DeliveryDashboard() {
               <p className="text-xs text-slate-500 mt-0.5">Assigned</p>
             </div>
             <div className="bg-white rounded-2xl p-4 shadow-sm ring-1 ring-slate-100 text-center">
-              <p className="text-2xl font-bold text-emerald-600">{delivered}</p>
+              <p className="text-2xl font-bold text-emerald-500">{delivered}</p>
               <p className="text-xs text-slate-500 mt-0.5">Delivered</p>
             </div>
             <div className="bg-white rounded-2xl p-4 shadow-sm ring-1 ring-slate-100 text-center">
@@ -261,7 +278,7 @@ export default function DeliveryDashboard() {
             </div>
             <div className="flex gap-3 mt-3">
               {[
-                { label: "Delivered", value: delivered, color: "text-emerald-600", dot: "bg-emerald-500" },
+                { label: "Delivered", value: delivered, color: "text-emerald-500", dot: "bg-emerald-500" },
                 { label: "Skipped",   value: skipped,   color: "text-rose-500",    dot: "bg-rose-400" },
                 { label: "Pending",   value: pending,   color: "text-slate-500",   dot: "bg-slate-300" },
               ].map(({ label, value, color, dot }) => (
@@ -350,34 +367,58 @@ export default function DeliveryDashboard() {
                 </button>
               </div>
               <div className="space-y-2">
-                {pendingDeliveries.slice(0, 3).map((d, idx) => (
-                  <button
-                    key={d._id}
-                    onClick={() => navigate("/dm/scan")}
-                    className="w-full bg-white rounded-2xl ring-1 ring-slate-100 p-4 flex items-center gap-3 text-left active:scale-95 transition-transform hover:ring-blue-200"
-                  >
+                {pendingDeliveries.slice(0, 3).map((d, idx) => {
+                  const address = formatAddress(d.customer.address);
+                  const total = getOrderTotal(d.products);
+                  return (
                     <div
-                      className={`${avatarPalette[idx % avatarPalette.length]} rounded-full w-9 h-9 flex items-center justify-center text-xs font-bold shrink-0`}
+                      key={d._id}
+                      className="bg-white rounded-2xl ring-1 ring-slate-100 shadow-sm p-4 flex flex-col gap-3"
                     >
-                      {getInitials(d.customer.name)}
+                      <button
+                        onClick={() => navigate("/dm/scan")}
+                        className="w-full flex items-center gap-3 text-left active:scale-95 transition-transform"
+                      >
+                        <div
+                          className={`${avatarPalette[idx % avatarPalette.length]} rounded-full w-10 h-10 flex items-center justify-center text-xs font-bold shrink-0 ring-2 ring-amber-100`}
+                        >
+                          {getInitials(d.customer.name)}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-semibold text-slate-900 truncate">
+                            {d.customer.name}
+                          </p>
+                          {address && (
+                            <p className="text-xs text-slate-500 truncate mt-0.5 flex items-center gap-1">
+                              <MapPin size={10} className="shrink-0 text-slate-400" />
+                              {address}
+                            </p>
+                          )}
+                        </div>
+                        <div className="text-right shrink-0">
+                          <p className="text-sm font-bold text-slate-800">₹{total.toFixed(0)}</p>
+                          <p className="text-[10px] text-slate-400">
+                            {d.products.length} item{d.products.length > 1 ? "s" : ""}
+                          </p>
+                        </div>
+                        <ChevronRight size={15} className="text-slate-300 shrink-0" />
+                      </button>
+
+                      {/* Product chips — shows every item, not just the first */}
+                      <div className="flex flex-wrap gap-1.5 pl-[52px]">
+                        {d.products.map((p) => (
+                          <span
+                            key={p.product._id}
+                            className="inline-flex items-center gap-1 text-[11px] font-medium text-slate-600 bg-slate-50 px-2 py-1 rounded-lg ring-1 ring-slate-100"
+                          >
+                            <Milk size={10} className="text-blue-500" />
+                            {p.quantity}{p.product.unit} {p.product.name}
+                          </span>
+                        ))}
+                      </div>
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-semibold text-slate-900 truncate">
-                        {d.customer.name}
-                      </p>
-                      <p className="text-xs text-slate-500 truncate mt-0.5">
-                        {/* {d.address} */}
-                      </p>
-                    </div>
-                    <div className="text-right shrink-0">
-                      <p className="text-sm font-bold text-slate-800">
-                        {d.products[0]?.quantity ?? 0} {d.products[0]?.product?.unit ?? ''}
-                      </p>
-                      <p className="text-[10px] text-slate-400">{d.products[0]?.product?.name ?? ''}</p>
-                    </div>
-                    <ChevronRight size={15} className="text-slate-300 shrink-0" />
-                  </button>
-                ))}
+                  );
+                })}
               </div>
             </div>
           )}
@@ -403,16 +444,21 @@ export default function DeliveryDashboard() {
                   return (
                     <div
                       key={d._id}
-                      className="bg-white rounded-2xl ring-1 ring-slate-100 p-4 flex items-center gap-3"
+                      className="bg-white rounded-2xl ring-1 ring-slate-100 shadow-sm p-4 flex items-center gap-3"
                     >
                       <div
-                        className={`${avatarPalette[idx % avatarPalette.length]} rounded-full w-9 h-9 flex items-center justify-center text-xs font-bold shrink-0`}
+                        className={`${avatarPalette[idx % avatarPalette.length]} rounded-full w-9 h-9 flex items-center justify-center text-xs font-bold shrink-0 ring-2 ${
+                          d.status === "delivered" ? "ring-emerald-100" : "ring-rose-100"
+                        }`}
                       >
                         {getInitials(d.customer.name)}
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-semibold text-slate-900 truncate">
                           {d.customer.name}
+                        </p>
+                        <p className="text-xs text-slate-500 truncate mt-0.5">
+                          {getOrderSummary(d.products)}
                         </p>
                       </div>
                       <div className="flex flex-col items-end gap-1 shrink-0">

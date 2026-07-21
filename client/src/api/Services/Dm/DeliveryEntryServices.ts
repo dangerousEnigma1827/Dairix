@@ -1,7 +1,9 @@
 import api from "../../api";
 
 export const updateDeliveryEntryService = async (customerId:string, status: "delivered"|"skipped") => {
-    const req = await api.post(`/deliveryEntry/delivery/${customerId}`)
+    const req = await api.post(`/deliveryEntry/delivery/${customerId}`, {
+        status
+    })
     return req.data
 }
 
