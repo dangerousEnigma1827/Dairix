@@ -34,10 +34,8 @@ import {
   Legend,
 } from "recharts";
 
-// utils
 import { avatarPalette, getInitials } from "../../utils/AvatarPalletesAndGetInitials";
 
-// services — all four already exist in your codebase
 import { getAllDms } from "../../api/Services/Owner/DmServices";
 import { getAllCustomers } from "../../api/Services/Owner/CustomerServices";
 import { getProducts } from "../../api/Services/Owner/ProductServices";
@@ -47,8 +45,7 @@ import { getTodayDispatchService } from "../../api/Services/Owner/DispatchServic
 // deliveredAt/createdAt: [{ date: "2026-07-13", delivered: 42, skipped: 3, volume: 61.5 }, ...]
 // import { getWeeklyDispatchStatsService } from "../../api/Services/Owner/DispatchServices";
 
-// ── Types (mirrors your mongoose models) ───────────────────────────────────
-
+// ── Types
 type Product = {
   _id: string;
   name: string;
@@ -115,20 +112,15 @@ const PIE_COLORS = ["#2563eb", "#10b981", "#f59e0b", "#8b5cf6", "#f43f5e", "#0ea
 
 // ── Small presentational bits ───────────────────────────────────────────────
 
-function StatCard({
-  icon: Icon,
-  label,
-  value,
-  sub,
-  tint,
-}: {
+function StatCard({ icon: Icon, label, value, sub, tint}: {
   icon: typeof Users;
   label: string;
   value: string;
   sub?: string;
   tint: "blue" | "emerald" | "amber" | "rose";
-}) {
-  const tints: Record<typeof tint, string> = {
+}){
+
+  const tints= {
     blue: "bg-blue-50 text-blue-600",
     emerald: "bg-emerald-50 text-emerald-600",
     amber: "bg-amber-50 text-amber-600",

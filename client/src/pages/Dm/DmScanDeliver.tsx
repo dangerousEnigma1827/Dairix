@@ -183,7 +183,7 @@ export default function DMScanDeliver() {
     setPageState("submitting");
     try {
       console.log(entry._id)
-      await updateDeliveryEntryService(entry._id)
+      await updateDeliveryEntryService(entry._id, status)
       setPageState("success");
     } catch (err) {
       console.error("Error updating delivery status:", err);

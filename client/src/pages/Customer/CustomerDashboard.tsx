@@ -106,7 +106,7 @@ const statusConfig = {
     bg: "bg-emerald-50",
     border: "border-emerald-200",
     label: "Delivered today",
-    sub: "2L received · On account",
+    sub: "Received · On account",
   },
   skipped: {
     icon: XCircle,
@@ -136,6 +136,7 @@ export default function CustomerDashboard() {
   const navigate = useNavigate();
   const [todayStatus, setTodayStatus] = useState<DailyStatus>("pending");
   const todayStatusConfig = statusConfig[todayStatus];
+  const [todayDeliveryTime, setTodayDeliveryTime]=useState<Date|null>(null);
   const TodayIcon = todayStatusConfig.icon;
 
   const [loading, setLoading] = useState({
@@ -166,7 +167,8 @@ export default function CustomerDashboard() {
   const handlleGetTodaysStatus = async () => {
     let req = await getTodaysCustomerDeliveryStatus();
     setTodayStatus(req.status)
-    // console.log(req)
+    let d=new Date(req.deliveredAt)
+    setTodayDeliveryTime(d)
   }
 
   useEffect(()=>{
@@ -241,11 +243,69 @@ export default function CustomerDashboard() {
 
           {/* Today's delivery status */}
           <div className={`rounded-2xl border ${todayStatusConfig.border} ${todayStatusConfig.bg} p-4`}>
-            <TodayIcon size={26} className={todayStatusConfig.color} />
-            <p className={`font-semibold ${todayStatusConfig.color}`}>
-              {todayStatusConfig.label}
-            </p>
-            <p>{todayStatusConfig.sub}</p>
+            <div className="flex items-center gap-3">
+
+              <div className={`w-11 h-11 rounded-xl ${todayStatusConfig.bg} flex items-center justify-center`}>
+                <TodayIcon size={24} className={todayStatusConfig.color} />
+              </div>
+
+              <div className="flex-1">
+                <p className={`font-semibold text-sm ${todayStatusConfig.color}`}>
+                  {todayStatusConfig.label}
+                </p>
+
+                <p className="text-xs text-slate-500 mt-0.5">
+                  {todayStatusConfig.sub} {" · "}
+                  {todayDeliveryTime ? 
+                  (todayDeliveryTime.toLocaleTimeString("en-IN", {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                    hour12: true,
+                    timeZone: "Asia/Kolkata",
+                  })) : (<></>)}
+                </p>
+              </div>
+
+            </div>
+
+          {/* Delivered products */}
+            <div className="mt-4 space-y-2">
+
+              {(customer.products ?? []).map((p) => (
+                <div
+                  key={p.name}
+                  className="flex items-center gap-3 bg-white/70 rounded-xl p-3"
+                >
+
+                  <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center overflow-hidden shrink-0">
+                    {
+                      p.image ?
+                      <img
+                        src={p.image}
+                        alt={p.name}
+                        className="w-full h-full object-cover"
+                      />
+                      :
+                      <Milk size={18} className="text-blue-600"/>
+                    }
+                  </div>
+
+
+                  <div className="flex-1">
+                    <p className="text-sm font-semibold text-slate-800">
+                      {p.name}
+                    </p>
+
+                    <p className="text-xs text-slate-500">
+                      {p.quantity} {p.unit}
+                    </p>
+                  </div>
+
+                </div>
+              ))}
+
+            </div>
+
           </div>
 
           {/* Stats row */}

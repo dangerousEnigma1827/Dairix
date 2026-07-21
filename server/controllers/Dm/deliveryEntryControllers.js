@@ -34,7 +34,7 @@ export const updateDeliveryStatus = async(req,res)=>{
                 dm:dmId
             },
             {
-                status:"delivered",
+                status:req.body.status,
                 deliveredAt:new Date()
             },
             {

@@ -4,14 +4,6 @@ import { getDmCustomers } from "../../controllers/Dm/dmControllers.js";
 
 const router = express.Router();
 
-router.get('/customers', (req,res,next)=>{
-    console.log("sdghfbgh")
-    next();
-},authenticate,
-(req,res,next)=>{
-    console.log("abscd")
-    next();
-},
-getDmCustomers)
+router.get('/customers', getDmCustomers)
 
 export default router;

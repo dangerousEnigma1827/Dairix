@@ -8,6 +8,7 @@ import AddDMModal from "../../components/Owner/DeliveryStaff/AddDMModal";
 import { getAllDms } from "../../api/Services/Owner/DmServices";
 import { useNavigate } from "react-router-dom";
 import { avatarPalette, getInitials } from "../../utils/AvatarPalletesAndGetInitials";
+import { getAllCustomers } from "../../api/Services/Owner/CustomerServices";
 
 type DM = {
     _id: number;
@@ -52,12 +53,20 @@ function DeliveryStaff() {
             dm.mobile.includes(search)
     );
 
+    let [totalCustomers, setTotalCustomers] = useState<number>();
+
+    const getTotalCustomers = async () => {
+        let req = await getAllCustomers()
+        console.log(req.length)
+        setTotalCustomers(req.length);
+    }
+
     useEffect(()=>{
         handleGetDms()
+        getTotalCustomers()
     },[])
 
     // const activeCount = dms.filter((dm) => dm.active).length;
-    // const totalCustomers = dms.reduce((sum, dm) => sum + dm.customers, 0);
 
     return (
         <div className="min-h-screen bg-slate-50 p-6 md:p-8">
@@ -116,7 +125,7 @@ function DeliveryStaff() {
                         </div>
                         <div>
                             <p className="text-sm text-slate-500">Total customers</p>
-                            {/* <p className="text-2xl font-bold text-slate-900">{totalCustomers}</p> */}
+                            <p className="text-2xl font-bold text-slate-900">{totalCustomers}</p>
                         </div>
                     </div>
                 </div>

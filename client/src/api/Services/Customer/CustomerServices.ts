@@ -12,3 +12,4 @@ export const getTodaysCustomerDeliveryStatus = async () => {
     const req=await api.get('/customers/deliveries/today')
     return req.data
 }
+
