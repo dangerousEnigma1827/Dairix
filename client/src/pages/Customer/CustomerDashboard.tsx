@@ -23,7 +23,12 @@ import type { AddressType } from "../../Types/Customer";
 import LoadingPage from "../LoadingPage";
 import LoadingPageNoReturn from "../LoadingPageNoReturn";
 import { avatarPalette, getInitials } from "../../utils/AvatarPalletesAndGetInitials";
-import { getTodaysCustomerDeliveryStatus, getWeeklyDeliveryTrack } from "../../api/Services/Customer/CustomerServices";
+import { 
+  getTodaysCustomerDeliveryStatus, 
+  getWeeklyDeliveryTrack,
+  getMonthlyDeliveryTrack,
+  type MonthlyDeliveryEntry
+} from "../../api/Services/Customer/CustomerServices";
 
 
 type DailyStatus = "delivered" | "skipped" | "pending";
@@ -81,7 +86,6 @@ function buildWeek(deliveryData: any[]): WeekDay[] {
     const d = new Date(start);
     d.setDate(start.getDate() + i);
 
-    // Backend entries are shaped { date, status, deliveredAt } — match on `date`, not `createdAt`
     const found = deliveryData.find((entry)=>{
       const entryDate = new Date(entry.date);
       return (
@@ -147,6 +151,22 @@ export default function CustomerDashboard() {
   const TodayIcon = todayStatusConfig.icon;
   const [weekData, setWeekData] = useState<any[]>([]);
   
+  const [monthlyData, setMonthlyData] = useState<MonthlyDeliveryEntry[]>([]);
+
+  const deliveredCount = monthlyData.filter(
+    (entry) => entry.status === "delivered"
+    ).length;
+
+    const skippedCount = monthlyData.filter(
+    (entry) => entry.status === "skipped"
+    ).length;
+
+    const totalDays = deliveredCount + skippedCount;
+
+    const deliveryRate = totalDays === 0
+    ? 0
+    : Math.round((deliveredCount / totalDays) * 100);
+  
   const WEEK = buildWeek(weekData);
 
   
@@ -201,6 +221,21 @@ export default function CustomerDashboard() {
 
     fetchWeek();
   }, []);
+
+  useEffect(() => {
+    const fetchMonthly = async () => {
+        const today = new Date();
+
+        const data = await getMonthlyDeliveryTrack(
+        today.getMonth() + 1,
+        today.getFullYear()
+        );
+
+        setMonthlyData(data);
+    };
+
+    fetchMonthly();
+    }, []);
 
  
   if(loading.customerLoading || !customer){
@@ -359,23 +394,93 @@ export default function CustomerDashboard() {
             )}
           </div>
 
-          {/* Stats row */}
-          <div className="grid grid-cols-3 gap-3">
-            {[
-              { label: "Delivered",  value: STATS.delivered, color: "text-slate-900" },
-              { label: "Skipped",    value: STATS.skipped,   color: "text-rose-500" },
-              { label: "This month", value: `${STATS.rate}%`, color: "text-blue-600" },
-            ].map(({ label, value, color }) => (
-              <button
-                key={label}
-                onClick={() => navigate("/customer/deliveries")}
-                className="bg-white rounded-2xl p-4 shadow-sm ring-1 ring-slate-100 text-center active:scale-95 transition-transform"
-              >
-                <p className={`text-2xl font-bold ${color}`}>{value}</p>
-                <p className="text-xs text-slate-500 mt-0.5">{label}</p>
-              </button>
-            ))}
-          </div>
+          {/* This Month Summary */}
+<div className="bg-white rounded-2xl shadow-sm ring-1 ring-slate-100 p-4">
+
+  <div className="flex items-center justify-between mb-4">
+    <div>
+      <p className="text-xs font-medium text-slate-500 uppercase tracking-wide flex items-center gap-1.5">
+        <CalendarDays size={13} />
+        This Month
+      </p>
+
+      <p className="text-sm font-semibold text-slate-800 mt-1">
+        {new Date().toLocaleString("en-IN", {
+          month: "long",
+          year: "numeric",
+        })}
+      </p>
+    </div>
+
+    <div className="bg-blue-50 rounded-xl px-3 py-2 text-center">
+      <p className="text-xs text-blue-500">
+        Rate
+      </p>
+      <p className="text-lg font-bold text-blue-600">
+        {deliveryRate}%
+      </p>
+    </div>
+  </div>
+
+
+  <div className="grid grid-cols-2 gap-3">
+
+    <div className="bg-emerald-50 rounded-xl p-3">
+      <p className="text-xs text-emerald-600">
+        Delivered
+      </p>
+
+      <p className="text-2xl font-bold text-emerald-700 mt-1">
+        {deliveredCount}
+      </p>
+
+      <p className="text-[11px] text-emerald-500">
+        successful deliveries
+      </p>
+    </div>
+
+
+    <div className="bg-rose-50 rounded-xl p-3">
+      <p className="text-xs text-rose-600">
+        Skipped
+      </p>
+
+      <p className="text-2xl font-bold text-rose-600 mt-1">
+        {skippedCount}
+      </p>
+
+      <p className="text-[11px] text-rose-400">
+        missed deliveries
+      </p>
+    </div>
+
+  </div>
+
+
+  <div className="mt-4">
+    <div className="flex justify-between items-center mb-1">
+      <p className="text-xs text-slate-500">
+        Delivery consistency
+      </p>
+
+      <p className="text-xs font-semibold text-slate-700">
+        {deliveredCount}/{totalDays}
+      </p>
+    </div>
+
+
+    <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
+      <div
+        className="h-full bg-blue-600 rounded-full transition-all"
+        style={{
+          width:`${deliveryRate}%`
+        }}
+      />
+    </div>
+
+  </div>
+
+</div>
 
           {/* This week strip */}
           <div className="bg-white rounded-2xl shadow-sm ring-1 ring-slate-100 p-4">
