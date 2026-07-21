@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
+  Milk,
   ChevronLeft,
   CheckCircle2,
   XCircle,
@@ -60,13 +61,14 @@ type DeliveryHistoryItem = {
 type StatusFilter = "all" | "delivered" | "skipped";
 type RangeFilter = "today" | "week" | "month" | "all";
 
+// Same visual language as CustomerDashboard / DeliveryTracker's statusConfig
 const statusConfig: Record<
   DeliveryStatus,
   { label: string; color: string; bg: string; border: string; icon: typeof CheckCircle2 }
 > = {
   delivered: {
     label: "Delivered",
-    color: "text-emerald-600",
+    color: "text-emerald-500",
     bg: "bg-emerald-50",
     border: "border-emerald-200",
     icon: CheckCircle2,
@@ -75,7 +77,7 @@ const statusConfig: Record<
     label: "Skipped",
     color: "text-rose-500",
     bg: "bg-rose-50",
-    border: "border-rose-100",
+    border: "border-rose-200",
     icon: XCircle,
   },
   pending: {
@@ -186,9 +188,16 @@ export default function DeliveryHistory() {
 
   const totalDelivered = filtered.filter((e) => e.status === "delivered").length;
   const totalSkipped = filtered.filter((e) => e.status === "skipped").length;
+  const successRate =
+    totalDelivered + totalSkipped > 0
+      ? Math.round((totalDelivered / (totalDelivered + totalSkipped)) * 100)
+      : 0;
+
+  const activeRangeLabel = rangeOptions.find((r) => r.key === rangeFilter)?.label ?? "";
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col">
+
       {/* ── Top bar ── */}
       <header className="sticky top-0 z-40 bg-white border-b border-slate-100 shadow-sm">
         <div className="max-w-lg mx-auto px-4 h-14 flex items-center gap-2">
@@ -198,20 +207,62 @@ export default function DeliveryHistory() {
           >
             <ChevronLeft size={20} />
           </button>
-          <span className="font-bold text-slate-900 text-sm">Delivery History</span>
+          <div className="flex items-center gap-2">
+            <div className="bg-blue-600 p-1.5 rounded-lg">
+              <Milk size={16} className="text-white" />
+            </div>
+            <span className="font-bold text-slate-900 text-sm">Delivery History</span>
+          </div>
         </div>
       </header>
 
+      {/* ── Scrollable content ── */}
       <main className="flex-1 overflow-y-auto">
         <div className="max-w-lg mx-auto px-4 pt-4 pb-8 space-y-4">
-          {/* ── Search ── */}
+
+          {/* Overview card */}
+          <div className="bg-blue-600 rounded-2xl p-5 text-white">
+            <div className="flex items-start justify-between">
+              <div>
+                <p className="text-blue-200 text-xs font-medium mb-0.5">{activeRangeLabel}</p>
+                <h1 className="text-2xl font-bold">
+                  {filtered.length} {filtered.length === 1 ? "Delivery" : "Deliveries"}
+                </h1>
+                <p className="text-blue-100 text-xs mt-1">
+                  {totalDelivered} delivered · {totalSkipped} skipped
+                </p>
+              </div>
+              <div className="bg-white/15 rounded-full p-2.5">
+                <PackageCheck size={26} className="text-white" />
+              </div>
+            </div>
+          </div>
+
+          {/* Stats row */}
+          <div className="grid grid-cols-3 gap-3">
+            {[
+              { label: "Delivered", value: totalDelivered, color: "text-slate-900" },
+              { label: "Skipped", value: totalSkipped, color: "text-rose-500" },
+              { label: "Success rate", value: `${successRate}%`, color: "text-blue-600" },
+            ].map(({ label, value, color }) => (
+              <div
+                key={label}
+                className="bg-white rounded-2xl p-4 shadow-sm ring-1 ring-slate-100 text-center"
+              >
+                <p className={`text-2xl font-bold ${color}`}>{value}</p>
+                <p className="text-xs text-slate-500 mt-0.5">{label}</p>
+              </div>
+            ))}
+          </div>
+
+          {/* Search */}
           <div className="relative">
             <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
             <input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search by customer name or mobile"
-              className="w-full bg-white ring-1 ring-slate-100 shadow-sm rounded-2xl pl-10 pr-9 py-3 text-sm text-slate-800 placeholder:text-slate-400 outline-none focus:ring-blue-300"
+              className="w-full bg-white ring-1 ring-slate-100 shadow-sm rounded-2xl pl-10 pr-9 py-3 text-sm text-slate-800 placeholder:text-slate-400 outline-none focus:ring-2 focus:ring-blue-300"
             />
             {search && (
               <button
@@ -223,13 +274,13 @@ export default function DeliveryHistory() {
             )}
           </div>
 
-          {/* ── Range filter chips ── */}
+          {/* Range filter chips */}
           <div className="flex gap-2 overflow-x-auto no-scrollbar">
             {rangeOptions.map((opt) => (
               <button
                 key={opt.key}
                 onClick={() => setRangeFilter(opt.key)}
-                className={`shrink-0 px-3.5 py-2 rounded-xl text-xs font-semibold transition-colors flex items-center gap-1.5 ${
+                className={`shrink-0 px-3.5 py-2 rounded-xl text-xs font-semibold transition-colors flex items-center gap-1.5 active:scale-95 ${
                   rangeFilter === opt.key
                     ? "bg-blue-600 text-white shadow-sm shadow-blue-200"
                     : "bg-white text-slate-500 ring-1 ring-slate-100"
@@ -241,15 +292,15 @@ export default function DeliveryHistory() {
             ))}
           </div>
 
-          {/* ── Status filter chips ── */}
+          {/* Status filter chips */}
           <div className="flex gap-2">
             {statusOptions.map((opt) => (
               <button
                 key={opt.key}
                 onClick={() => setStatusFilter(opt.key)}
-                className={`flex-1 py-2 rounded-xl text-xs font-semibold transition-colors ${
+                className={`flex-1 py-2 rounded-xl text-xs font-semibold transition-colors active:scale-95 ${
                   statusFilter === opt.key
-                    ? "bg-slate-900 text-white"
+                    ? "bg-blue-600 text-white shadow-sm shadow-blue-200"
                     : "bg-white text-slate-500 ring-1 ring-slate-100"
                 }`}
               >
@@ -258,29 +309,17 @@ export default function DeliveryHistory() {
             ))}
           </div>
 
-          {/* ── Summary ── */}
-          <div className="grid grid-cols-2 gap-3">
-            <div className="bg-white rounded-2xl p-4 shadow-sm ring-1 ring-slate-100 text-center">
-              <p className="text-2xl font-bold text-emerald-600">{totalDelivered}</p>
-              <p className="text-xs text-slate-500 mt-0.5">Delivered</p>
-            </div>
-            <div className="bg-white rounded-2xl p-4 shadow-sm ring-1 ring-slate-100 text-center">
-              <p className="text-2xl font-bold text-rose-500">{totalSkipped}</p>
-              <p className="text-xs text-slate-500 mt-0.5">Skipped</p>
-            </div>
-          </div>
-
-          {/* ── Loading state ── */}
+          {/* Loading state */}
           {loading && (
-            <div className="flex flex-col items-center justify-center gap-3 py-16">
-              <Loader2 size={24} className="text-blue-600 animate-spin" />
-              <p className="text-sm text-slate-500">Loading history…</p>
+            <div className="bg-white rounded-2xl ring-1 ring-slate-100 shadow-sm flex flex-col items-center justify-center gap-3 py-16">
+              <Loader2 size={22} className="text-blue-600 animate-spin" />
+              <p className="text-sm text-slate-400">Loading history…</p>
             </div>
           )}
 
-          {/* ── Error state ── */}
+          {/* Error state */}
           {!loading && error && (
-            <div className="bg-rose-50 border border-rose-100 rounded-2xl p-5 text-center">
+            <div className="bg-rose-50 border border-rose-200 rounded-2xl p-5 text-center">
               <p className="text-sm text-rose-600 font-medium">{error}</p>
               <button
                 onClick={fetchHistory}
@@ -291,11 +330,11 @@ export default function DeliveryHistory() {
             </div>
           )}
 
-          {/* ── Empty state ── */}
+          {/* Empty state */}
           {!loading && !error && dateKeys.length === 0 && (
-            <div className="bg-white rounded-2xl ring-1 ring-slate-100 p-8 flex flex-col items-center text-center gap-2">
-              <div className="bg-slate-50 w-12 h-12 rounded-2xl flex items-center justify-center">
-                <PackageCheck size={22} className="text-slate-400" />
+            <div className="bg-white rounded-2xl shadow-sm ring-1 ring-slate-100 p-8 flex flex-col items-center text-center gap-2">
+              <div className="bg-blue-50 w-12 h-12 rounded-xl flex items-center justify-center">
+                <PackageCheck size={22} className="text-blue-600" />
               </div>
               <p className="font-semibold text-slate-800 text-sm">No deliveries found</p>
               <p className="text-xs text-slate-500">
@@ -304,57 +343,59 @@ export default function DeliveryHistory() {
             </div>
           )}
 
-          {/* ── Grouped history list ── */}
-          {!loading &&
-            !error &&
-            dateKeys.map((dateKey) => (
-              <div key={dateKey}>
-                <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-2 px-1">
-                  {dateKey}
-                </p>
-                <div className="space-y-2">
-                  {grouped[dateKey].map((entry, idx) => {
-                    const cfg = statusConfig[entry.status];
-                    const Icon = cfg.icon;
-                    return (
-                      <div
-                        key={entry._id}
-                        className="bg-white rounded-2xl ring-1 ring-slate-100 shadow-sm p-4 flex items-center gap-3"
-                      >
+          {/* Grouped history list */}
+          {!loading && !error && dateKeys.length > 0 && (
+            <div className="space-y-4">
+              {dateKeys.map((dateKey) => (
+                <div key={dateKey}>
+                  <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-wide mb-2 px-1">
+                    {dateKey}
+                  </p>
+                  <div className="bg-white rounded-2xl shadow-sm ring-1 ring-slate-100 p-2 space-y-1.5">
+                    {grouped[dateKey].map((entry, idx) => {
+                      const cfg = statusConfig[entry.status];
+                      const Icon = cfg.icon;
+                      return (
                         <div
-                          className={`${avatarPalette[idx % avatarPalette.length]} rounded-full w-9 h-9 flex items-center justify-center text-xs font-bold shrink-0`}
+                          key={entry._id}
+                          className="flex items-center gap-3 rounded-xl p-2.5 hover:bg-slate-50 transition-colors"
                         >
-                          {getInitials(entry.customer.name)}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-semibold text-slate-900 truncate">
-                            {entry.customer.name}
-                          </p>
-                          <p className="text-xs text-slate-500 truncate mt-0.5">
-                            {entry.products
-                              .map((p) => `${p.quantity} ${p.product.unit} ${p.product.name}`)
-                              .join(", ")}
-                          </p>
-                        </div>
-                        <div className="flex flex-col items-end gap-1 shrink-0">
-                          <span
-                            className={`inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full ${cfg.bg} ${cfg.color}`}
+                          <div
+                            className={`${avatarPalette[idx % avatarPalette.length]} rounded-full w-9 h-9 flex items-center justify-center text-xs font-bold shrink-0`}
                           >
-                            <Icon size={10} />
-                            {cfg.label}
-                          </span>
-                          {entry.deliveredAt && (
-                            <p className="text-[10px] text-slate-400">
-                              {formatTime(entry.deliveredAt)}
+                            {getInitials(entry.customer.name)}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-semibold text-slate-800 truncate">
+                              {entry.customer.name}
                             </p>
-                          )}
+                            <p className="text-xs text-slate-500 truncate mt-0.5">
+                              {entry.products
+                                .map((p) => `${p.quantity} ${p.product.unit} ${p.product.name}`)
+                                .join(", ")}
+                            </p>
+                          </div>
+                          <div className="flex flex-col items-end gap-1 shrink-0">
+                            <span
+                              className={`inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full ${cfg.bg} ${cfg.color}`}
+                            >
+                              <Icon size={10} />
+                              {cfg.label}
+                            </span>
+                            {entry.deliveredAt && (
+                              <p className="text-[11px] text-slate-400">
+                                {formatTime(entry.deliveredAt)}
+                              </p>
+                            )}
+                          </div>
                         </div>
-                      </div>
-                    );
-                  })}
+                      );
+                    })}
+                  </div>
                 </div>
-              </div>
-            ))}
+              ))}
+            </div>
+          )}
         </div>
       </main>
     </div>
