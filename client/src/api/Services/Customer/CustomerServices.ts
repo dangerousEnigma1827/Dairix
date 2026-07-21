@@ -13,7 +13,20 @@ export const getTodaysCustomerDeliveryStatus = async () => {
     return req.data
 }
 
-export const getDeliveryTrackOfAMonth = async (month:number, year:number) => {
-    const req = await api.get(`/customers/deliveries/monthTrack?month=${month}&year=${year}`)
-    return req.data
-}
+export type MonthlyDeliveryEntry = {
+  date: string;               // ISO string (entry.createdAt)
+  status: "delivered" | "skipped" | "pending";
+  deliveredAt: string | null; // ISO string or null
+};
+ 
+export const getMonthlyDeliveryTrack = async (
+  month: number, // 1-12
+  year: number
+): Promise<MonthlyDeliveryEntry[]> => {
+  const { data } = await api.get<MonthlyDeliveryEntry[]>(
+    "/customers/deliveries/monthly",
+    { params: { month, year } }
+  );
+  return data;
+};
+ 

@@ -42,7 +42,7 @@ export const getTodaysDeliveryStatus = async (req, res) => {
 
         if (!delivery) {
             return res.status(200).json({
-                status: "no_delivery"
+                status: "skipped"
             });
         }
 
@@ -66,7 +66,6 @@ export const getTodaysDeliveryStatus = async (req, res) => {
 export const getMonthlyDeliveryTrack = async (req, res) => {
     try {
         const userId = req.user._id;
-        console.log("came here")
 
         const month = Number(req.query.month);
         const year = Number(req.query.year);

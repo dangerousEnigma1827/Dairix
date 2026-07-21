@@ -12,7 +12,7 @@ router.post(`/:customerId/products/manage`, updateCustomerSubs);
 
 router.get('/deliveries/today', authenticate, getTodaysDeliveryStatus)
 
-router.get('/deliveries/monthTrack', authenticate, getMonthlyDeliveryTrack)
+router.get('/deliveries/monthly', authenticate, getMonthlyDeliveryTrack)
 
 
 export default router;

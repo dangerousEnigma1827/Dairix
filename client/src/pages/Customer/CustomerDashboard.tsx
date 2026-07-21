@@ -138,6 +138,7 @@ export default function CustomerDashboard() {
   const todayStatusConfig = statusConfig[todayStatus];
   const [todayDeliveryTime, setTodayDeliveryTime]=useState<Date|null>(null);
   const TodayIcon = todayStatusConfig.icon;
+  
 
   const [loading, setLoading] = useState({
     customerLoading:false,
