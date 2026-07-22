@@ -4,6 +4,6 @@ import { getWeeklyStats } from "../../controllers/Owner/dashboardControllers.js"
 
 const router = express.Router();
 
-router.get("/dashboard/weekly-stats", authenticate, getWeeklyStats);
+router.get("/weekly-stats", authenticate, getWeeklyStats);
 
 export default router;

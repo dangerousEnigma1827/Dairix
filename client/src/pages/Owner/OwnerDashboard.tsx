@@ -40,10 +40,7 @@ import { getAllDms } from "../../api/Services/Owner/DmServices";
 import { getAllCustomers } from "../../api/Services/Owner/CustomerServices";
 import { getProducts } from "../../api/Services/Owner/ProductServices";
 import { getTodayDispatchService } from "../../api/Services/Owner/DispatchServices";
-// NOTE: this one is new — add it next to getTodayDispatchService. It should return the
-// last 7 days of DeliveryEntry data aggregated per day, e.g. via a Mongo $group on
-// deliveredAt/createdAt: [{ date: "2026-07-13", delivered: 42, skipped: 3, volume: 61.5 }, ...]
-// import { getWeeklyDispatchStatsService } from "../../api/Services/Owner/DispatchServices";
+import { getWeeklyStatsService } from "../../api/Services/Owner/DashboardServices";
 
 // ── Types
 type Product = {
@@ -210,12 +207,11 @@ export default function OwnerDashboard() {
 
   const fetchWeeklyStats = async () => {
     try {
-      // const res = await getWeeklyDispatchStatsService();
-      // setWeeklyStats(res ?? []);
-      setWeeklyStats([]);
+      const res = await getWeeklyStatsService();
+      setWeeklyStats(res);
       setWeeklyError(false);
     } catch (err) {
-      console.error("Error loading weekly stats:", err);
+      console.error(err);
       setWeeklyError(true);
     }
   };
