@@ -15,6 +15,7 @@ import {
   Loader2,
   AlertCircle,
   UserX,
+  X,
 } from "lucide-react";
 
 // utils
@@ -82,20 +83,20 @@ const today = new Date().toLocaleDateString("en-IN", {
 function EntryStatusPill({ status }: { status: DeliveryEntry["status"] }) {
   if (status === "delivered") {
     return (
-      <span className="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold text-emerald-600">
+      <span className="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold text-emerald-500">
         <CheckCircle2 size={11} /> Delivered
       </span>
     );
   }
   if (status === "skipped") {
     return (
-      <span className="inline-flex items-center gap-1 rounded-full border border-rose-200 bg-rose-50 px-2 py-0.5 text-[10px] font-semibold text-rose-600">
+      <span className="inline-flex items-center gap-1 rounded-full border border-rose-200 bg-rose-50 px-2 py-0.5 text-[10px] font-semibold text-rose-500">
         <XCircle size={11} /> Skipped
       </span>
     );
   }
   return (
-    <span className="inline-flex items-center gap-1 rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-[10px] font-semibold text-amber-600">
+    <span className="inline-flex items-center gap-1 rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-[10px] font-semibold text-amber-500">
       <Circle size={11} /> Pending
     </span>
   );
@@ -112,20 +113,24 @@ function StatCard({
   value: string;
   tint: "blue" | "emerald" | "amber" | "rose";
 }) {
-  const tints: Record<typeof tint, string> = {
-    blue: "bg-blue-50 text-blue-600",
-    emerald: "bg-emerald-50 text-emerald-600",
-    amber: "bg-amber-50 text-amber-600",
-    rose: "bg-rose-50 text-rose-600",
+  const tints: Record<typeof tint, { bg: string; text: string; blur: string }> = {
+    blue: { bg: "bg-blue-50", text: "text-blue-600", blur: "bg-blue-50" },
+    emerald: { bg: "bg-emerald-50", text: "text-emerald-500", blur: "bg-emerald-50" },
+    amber: { bg: "bg-amber-50", text: "text-amber-500", blur: "bg-amber-50" },
+    rose: { bg: "bg-rose-50", text: "text-rose-500", blur: "bg-rose-50" },
   };
+  const t = tints[tint];
   return (
-    <div className="flex items-center gap-4 rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-100">
-      <div className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl ${tints[tint]}`}>
-        <Icon size={20} />
-      </div>
-      <div>
-        <p className="text-sm text-slate-500">{label}</p>
-        <p className="text-2xl font-bold text-slate-900">{value}</p>
+    <div className="group relative overflow-hidden rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-100 transition-all hover:shadow-md hover:-translate-y-0.5">
+      <div className={`absolute -right-4 -top-4 h-20 w-20 rounded-full ${t.blur} blur-2xl transition-opacity group-hover:opacity-80`} />
+      <div className="relative flex items-center gap-4">
+        <div className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl ${t.bg} ${t.text}`}>
+          <Icon size={20} />
+        </div>
+        <div>
+          <p className="text-sm text-slate-500">{label}</p>
+          <p className="text-2xl font-bold text-slate-900 mt-0.5">{value}</p>
+        </div>
       </div>
     </div>
   );
@@ -205,9 +210,12 @@ function DmDetails() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center gap-3">
+      <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center gap-4">
+        <div className="bg-blue-600 p-3 rounded-2xl shadow-sm shadow-blue-200">
+          <Truck size={26} className="text-white" />
+        </div>
         <Loader2 size={22} className="text-blue-600 animate-spin" />
-        <span className="text-slate-500 text-sm">Loading delivery staff details…</span>
+        <p className="text-sm text-slate-500">Loading delivery staff details…</p>
       </div>
     );
   }
@@ -218,19 +226,25 @@ function DmDetails() {
         <div className="mx-auto max-w-6xl">
           <button
             onClick={() => navigate("/owner/delivery-staff")}
-            className="mb-6 flex items-center gap-1.5 text-sm font-medium text-slate-500 hover:text-slate-700"
+            className="mb-6 flex items-center gap-1.5 text-sm font-medium text-slate-500 transition-colors hover:text-slate-700"
           >
             <ChevronLeft size={16} />
             Back to delivery staff
           </button>
           <div className="flex flex-col items-center gap-2 rounded-2xl border border-dashed border-slate-200 bg-white p-12 text-center">
-            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-rose-50">
-              <UserX size={22} className="text-rose-500" />
+            <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-rose-50">
+              <UserX size={24} className="text-rose-500" />
             </div>
-            <p className="font-semibold text-slate-800">Delivery man not found</p>
+            <p className="font-semibold text-slate-800 mt-1">Delivery man not found</p>
             <p className="text-sm text-slate-500">
               This profile may have been removed. Head back to the staff list to try again.
             </p>
+            <button
+              onClick={() => navigate("/owner/delivery-staff")}
+              className="mt-3 rounded-xl bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm shadow-blue-200 transition-all hover:bg-blue-700 hover:shadow-md active:scale-[0.98]"
+            >
+              Back to staff list
+            </button>
           </div>
         </div>
       </div>
@@ -243,7 +257,7 @@ function DmDetails() {
         {/* ── Back link ── */}
         <button
           onClick={() => navigate("/owner/delivery-staff")}
-          className="flex items-center gap-1.5 text-sm font-medium text-slate-500 transition hover:text-slate-700"
+          className="flex items-center gap-1.5 text-sm font-medium text-slate-500 transition-colors hover:text-slate-700"
         >
           <ChevronLeft size={16} />
           Back to delivery staff
@@ -253,7 +267,7 @@ function DmDetails() {
         <div className="flex flex-col gap-5 rounded-2xl bg-white p-6 shadow-sm ring-1 ring-slate-100 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-4">
             <div
-              className={`flex h-16 w-16 shrink-0 items-center justify-center rounded-full text-xl font-bold ${avatarPalette[0]}`}
+              className={`flex h-16 w-16 shrink-0 items-center justify-center rounded-full text-xl font-bold ring-4 ring-blue-50 ${avatarPalette[0]}`}
             >
               {getInitials(dm.name)}
             </div>
@@ -272,8 +286,8 @@ function DmDetails() {
                   <span
                     className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs font-semibold ${
                       dmBlock.status === "completed"
-                        ? "border-emerald-200 bg-emerald-50 text-emerald-600"
-                        : "border-amber-200 bg-amber-50 text-amber-600"
+                        ? "border-emerald-200 bg-emerald-50 text-emerald-500"
+                        : "border-amber-200 bg-amber-50 text-amber-500"
                     }`}
                   >
                     <Truck size={11} />
@@ -291,7 +305,7 @@ function DmDetails() {
 
           <a
             href={`tel:${dm.mobile}`}
-            className="flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700"
+            className="flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-5 py-3 text-sm font-semibold text-white shadow-sm shadow-blue-200 transition-all hover:bg-blue-700 hover:shadow-md active:scale-[0.98]"
           >
             <Phone size={16} />
             Call {dm.name.split(" ")[0]}
@@ -336,7 +350,7 @@ function DmDetails() {
                 <>
                   <div className="h-2.5 w-full overflow-hidden rounded-full bg-slate-100">
                     <div
-                      className="h-full bg-emerald-500 transition-all"
+                      className="h-full bg-emerald-500 rounded-full transition-all duration-500"
                       style={{ width: `${progressPct}%` }}
                     />
                   </div>
@@ -346,21 +360,21 @@ function DmDetails() {
 
                   <div className="mt-4 grid grid-cols-3 gap-3">
                     <div className="flex items-center gap-2 rounded-xl bg-emerald-50 px-3 py-2.5">
-                      <CheckCircle2 size={16} className="shrink-0 text-emerald-600" />
+                      <CheckCircle2 size={16} className="shrink-0 text-emerald-500" />
                       <div>
                         <p className="text-sm font-bold leading-none text-emerald-700">{deliveredToday}</p>
                         <p className="mt-0.5 text-[10px] text-emerald-600">Delivered</p>
                       </div>
                     </div>
                     <div className="flex items-center gap-2 rounded-xl bg-amber-50 px-3 py-2.5">
-                      <Clock size={16} className="shrink-0 text-amber-600" />
+                      <Clock size={16} className="shrink-0 text-amber-500" />
                       <div>
                         <p className="text-sm font-bold leading-none text-amber-700">{pendingToday}</p>
                         <p className="mt-0.5 text-[10px] text-amber-600">Pending</p>
                       </div>
                     </div>
                     <div className="flex items-center gap-2 rounded-xl bg-rose-50 px-3 py-2.5">
-                      <XCircle size={16} className="shrink-0 text-rose-600" />
+                      <XCircle size={16} className="shrink-0 text-rose-500" />
                       <div>
                         <p className="text-sm font-bold leading-none text-rose-700">{skippedToday}</p>
                         <p className="mt-0.5 text-[10px] text-rose-600">Skipped</p>
@@ -368,12 +382,15 @@ function DmDetails() {
                     </div>
                   </div>
 
-                  <div className="mt-5 space-y-2 border-t border-slate-100 pt-4">
-                    <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+                  <div className="mt-5 space-y-1 border-t border-slate-100 pt-4">
+                    <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-400">
                       Allocated quantities
                     </p>
                     {dmBlock.allocations.map((a) => (
-                      <div key={a.product._id} className="flex items-center justify-between">
+                      <div
+                        key={a.product._id}
+                        className="flex items-center justify-between rounded-lg px-2 py-1.5 transition-colors hover:bg-slate-50"
+                      >
                         <div className="flex items-center gap-2">
                           <div className="rounded-lg border border-slate-200 bg-white p-1.5">
                             <Milk size={13} className="text-blue-600" />
@@ -410,7 +427,7 @@ function DmDetails() {
                     return (
                       <div
                         key={entry._id}
-                        className="flex items-center gap-3 border-b border-slate-50 py-2.5 last:border-0"
+                        className="flex items-center gap-3 rounded-lg border-b border-slate-50 px-1 py-2.5 transition-colors last:border-0 hover:bg-slate-50"
                       >
                         <div
                           className={`${avatarPalette[idx % avatarPalette.length]} flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[10px] font-bold`}
@@ -443,14 +460,22 @@ function DmDetails() {
               <div className="relative mb-3">
                 <Search
                   size={15}
-                  className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
+                  className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"
                 />
                 <input
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                   placeholder="Search customers…"
-                  className="w-full rounded-xl border border-slate-200 bg-white py-2 pl-9 pr-3 text-xs outline-none transition focus:border-blue-400 focus:ring-4 focus:ring-blue-100"
+                  className="w-full rounded-xl bg-white py-2.5 pl-9 pr-8 text-xs text-slate-800 placeholder:text-slate-400 shadow-sm ring-1 ring-slate-100 outline-none transition-shadow focus:ring-2 focus:ring-blue-300"
                 />
+                {search && (
+                  <button
+                    onClick={() => setSearch("")}
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                  >
+                    <X size={13} />
+                  </button>
+                )}
               </div>
 
               {assignedCustomers.length === 0 ? (

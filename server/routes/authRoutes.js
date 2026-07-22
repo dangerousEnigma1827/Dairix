@@ -10,7 +10,7 @@ const router = Router();
 router.post("/signup", signup);
 // router.post("/login", validate(loginSchema), login);
 router.post("/login", login);
-router.post("/logout", logout);
+router.post("/logout",authenticate, logout);
 router.get("/me", authenticate, getMe); // protected
 router.get(`/:_id`, authenticate, getUserFromId); // protected
 

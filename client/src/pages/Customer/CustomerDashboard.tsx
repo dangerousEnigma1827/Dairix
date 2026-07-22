@@ -17,7 +17,7 @@ import {
   Droplets,
   AlertCircle,
 } from "lucide-react";
-import { currUserService } from "../../api/Services/AuthServices";
+import { currUserService, logoutService } from "../../api/Services/AuthServices";
 import { useEffect, useState } from "react";
 import type { AddressType } from "../../Types/Customer";
 import LoadingPage from "../LoadingPage";
@@ -29,7 +29,7 @@ import {
   getMonthlyDeliveryTrack,
   type MonthlyDeliveryEntry
 } from "../../api/Services/Customer/CustomerServices";
-
+import LogoutModal from "../LogoutModal";
 
 type DailyStatus = "delivered" | "skipped" | "pending";
 
@@ -153,6 +153,10 @@ export default function CustomerDashboard() {
   
   const [monthlyData, setMonthlyData] = useState<MonthlyDeliveryEntry[]>([]);
 
+
+  const [logoutOpen, setLogoutOpen] = useState(false);
+  const [logoutLoading, setLogoutLoading] = useState(false);
+
   const deliveredCount = monthlyData.filter(
     (entry) => entry.status === "delivered"
     ).length;
@@ -208,6 +212,21 @@ export default function CustomerDashboard() {
     setTodayDeliveryTime(d)
   }
 
+  const handleLogout = async () => {
+    try {
+      setLogoutLoading(true);
+
+      await logoutService();
+
+      navigate("/login", { replace: true });
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLogoutLoading(false);
+      setLogoutOpen(false);
+    }
+  };
+
   useEffect(()=>{
     handleGetCurrentUser()
     handlleGetTodaysStatus()
@@ -257,6 +276,13 @@ export default function CustomerDashboard() {
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col">
 
+      <LogoutModal
+        open={logoutOpen}
+        onClose={() => setLogoutOpen(false)}
+        onConfirm={handleLogout}
+        loading={logoutLoading}
+      />
+
       {/* ── Top bar ── */}
       <header className="sticky top-0 z-40 bg-white border-b border-slate-100 shadow-sm">
         <div className="max-w-lg mx-auto px-4 h-14 flex items-center justify-between">
@@ -271,9 +297,11 @@ export default function CustomerDashboard() {
               <Bell size={18} />
               <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 bg-rose-500 rounded-full" />
             </button>
-            <button className="p-2 rounded-xl hover:bg-slate-100 text-slate-500 transition-colors">
+
+            <button className="p-2 rounded-xl hover:bg-slate-100 text-slate-500 transition-colors" onClick={() => setLogoutOpen(true)}>
               <LogOut size={18} />
             </button>
+
           </div>
         </div>
       </header>

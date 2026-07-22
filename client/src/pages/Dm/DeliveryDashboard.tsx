@@ -23,9 +23,10 @@ import {
 //utils
 import { formatTime } from "../../utils/formatTime";
 import { avatarPalette, getInitials } from "../../utils/AvatarPalletesAndGetInitials";
-import { currUserService } from "../../api/Services/AuthServices";
+import { currUserService, logoutService } from "../../api/Services/AuthServices";
 import { getDmTodayDeliveriesService } from "../../api/Services/Owner/DeliveryEntryServices";
 
+import LogoutModal from "../LogoutModal";
 // ── Types — align with your backend response shape ────────────────────────────
 
 type DeliveryStatus = "delivered" | "skipped" | "pending" | "paused";
@@ -127,6 +128,10 @@ export default function DeliveryDashboard() {
     deliveriesLoading: false,
   });
 
+  const [logoutOpen, setLogoutOpen] = useState(false);
+  const [logoutLoading, setLogoutLoading] = useState(false);
+
+
   const handleGetDm = async () => {
     setLoading((prev) => ({ ...prev, dmLoading: true }));
     try {
@@ -157,17 +162,24 @@ export default function DeliveryDashboard() {
     handleGetDeliveries();
   }, []);
 
-  if (loading.dmLoading || !dm) {
-    return (
-      <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center gap-4">
-        <div className="bg-blue-600 p-3 rounded-2xl">
-          <Milk size={28} className="text-white" />
-        </div>
-        <Loader2 size={24} className="text-blue-600 animate-spin" />
-        <p className="text-sm text-slate-500">Loading your dashboard…</p>
-      </div>
-    );
-  }
+  const handleLogout = async () => {
+      try {
+
+          setLogoutLoading(true);
+
+          await logoutService();
+
+          navigate("/login", {
+              replace:true
+          });
+
+      } catch(err) {
+          console.error("Logout failed",err);
+      } finally {
+          setLogoutLoading(false);
+          setLogoutOpen(false);
+      }
+  };
 
   const total     = deliveries.length;
   const delivered = deliveries?.filter((d) => d.status === "delivered").length;
@@ -185,6 +197,19 @@ export default function DeliveryDashboard() {
     .slice(0, 4);
 
   const pendingDeliveries = deliveries?.filter((d) => d.status === "pending");
+
+
+    if (loading.dmLoading || !dm) {
+    return (
+      <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center gap-4">
+        <div className="bg-blue-600 p-3 rounded-2xl">
+          <Milk size={28} className="text-white" />
+        </div>
+        <Loader2 size={24} className="text-blue-600 animate-spin" />
+        <p className="text-sm text-slate-500">Loading your dashboard…</p>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col">
@@ -205,7 +230,7 @@ export default function DeliveryDashboard() {
                 <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 bg-rose-500 rounded-full" />
               )}
             </button>
-            <button className="p-2 rounded-xl hover:bg-slate-100 text-slate-500 transition-colors">
+            <button className="p-2 rounded-xl hover:bg-slate-100 text-slate-500 transition-colors" onClick={() => setLogoutOpen(true)}>
               <LogOut size={18} />
             </button>
           </div>
@@ -494,6 +519,13 @@ export default function DeliveryDashboard() {
 
         </div>
       </main>
+
+       <LogoutModal
+          open={logoutOpen}
+          onClose={() => setLogoutOpen(false)}
+          onConfirm={handleLogout}
+          loading={logoutLoading}
+        />
     </div>
   );
 }
