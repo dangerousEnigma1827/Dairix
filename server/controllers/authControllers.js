@@ -5,6 +5,7 @@ import asyncHandler from "../utils/asyncHandler.js";
 import cookieOptions from "../utils/cookieOptions.js";
 import jwt from "jsonwebtoken"
 import bcrypt from 'bcrypt'
+import { redisClient } from "../config/redis.js";
 
 
 export const signup = asyncHandler(async (req, res) => {
@@ -112,12 +113,27 @@ export const logout = asyncHandler(async (_req, res) => {
 
 
 export const getMe = asyncHandler(async (req, res) => {
+  const cache = await redisClient.get(`customer:${req.user._id}`);
+  if(cache){
+    return res.json(new ApiResponse(200, cache, "User fetched successfully"));
+  }
+
   const user = await User.findById(req.user._id).populate("assignedDm");
+
   if (!user) {
     throw new ApiError(404, "User not found");
   }
 
-  res.json(new ApiResponse(200, user, "User fetched successfully"));
+  await redisClient.set(`customer:${req.user._id}`,
+    JSON.stringify(user),
+    {
+      EX:600
+    }
+  );
+
+  
+
+  res.json(new ApiResponse(200, JSON.parse(user), "User fetched successfully"));
 });
 
 

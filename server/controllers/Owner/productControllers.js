@@ -1,3 +1,4 @@
+import { redisClient } from "../../config/redis.js";
 import Product from "../../models/productModels.js";
 import ApiError from "../../utils/apiError.js";
 import ApiResponse from "../../utils/apiResponse.js";
@@ -26,7 +27,17 @@ export const createProduct = asyncHandler(async (req, res) => {
 });
 
 export const getProducts = asyncHandler(async (req, res) => {
+    const cache = await redisClient.get("products");
+
+    if(cache){
+        return new ApiResponse(200, JSON.parse(cache), "Products fetched successfully")
+    }
+
     const products = await Product.find().sort({ createdAt: -1 });
+
+    await redisClient.set("products", JSON.stringify(products), {
+        EX:600
+    });
 
     return res.status(200).json(
         new ApiResponse(200, products, "Products fetched successfully")
