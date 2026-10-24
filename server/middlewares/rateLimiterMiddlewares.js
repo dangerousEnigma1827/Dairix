@@ -1,4 +1,4 @@
-import redisClient from "../config/redis.js";
+import {redisClient} from "../config/redis.js";
 
 export const rateLimiter = async (req, res, next) => {
   try {

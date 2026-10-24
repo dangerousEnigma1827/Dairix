@@ -1,57 +1,71 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Eye, EyeOff, Loader2, Lock, Phone } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import api from "../api/api";
 import toast from "react-hot-toast";
+import { useUser } from "../hooks/useUser";
 
 function Login() {
   const [showPin, setShowPin] = useState(false);
   const navigate = useNavigate();
+  const { user: currentUser, setUser, loading: authLoading } = useUser();
 
   const [formData, setFormData] = useState({
     mobile: "",
     password: "",
   });
 
-  const [loading, setLoading]=useState(false);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (currentUser && !authLoading) {
+      if (currentUser.role === "owner") {
+        navigate("/owner", { replace: true });
+      } else if (currentUser.role === "dm") {
+        navigate("/dm", { replace: true });
+      } else {
+        navigate("/customer", { replace: true });
+      }
+    }
+  }, [currentUser, authLoading, navigate]);
 
   const handleLogin = async () => {
-    setLoading(true)
+    if (!formData.mobile || !formData.password) {
+      toast("Please enter your mobile number and password", {
+        style: { background: "#2563EB", color: "#fff" },
+      });
+      return;
+    }
+
+    setLoading(true);
     try {
       const res = await api.post("/auth/login", {
         mobile: formData.mobile,
         password: formData.password,
       });
 
-      const user = res.data.data.user;
+      const loggedInUser = res.data?.data?.user || res.data?.data;
+      setUser(loggedInUser);
 
-      console.log(user.role)
-      if (user.role === "owner"){
-        console.log("navigating1")
-        navigate("/owner");
-        toast("Logged In Successfully", {
-          style: { background: "#2563EB", color: "#fff" },
-        });
-      }
-      else if(user.role === "dm"){
-        navigate("/dm");
-        toast("Logged In Successfully", {
-          style: { background: "#2563EB", color: "#fff" },
-        });
-      }
-      else{
-        navigate("/customer");
-        toast("Logged In Successfully", {
-          style: { background: "#2563EB", color: "#fff" },
-        });
+      toast("Logged In Successfully", {
+        style: { background: "#2563EB", color: "#fff" },
+      });
+
+      if (loggedInUser.role === "owner") {
+        navigate("/owner", { replace: true });
+      } else if (loggedInUser.role === "dm") {
+        navigate("/dm", { replace: true });
+      } else {
+        navigate("/customer", { replace: true });
       }
       
-    } catch (err:any) {
+    } catch (err: any) {
       console.log("LOGIN ERROR:", err.response?.data);
-      toast(err.response?.data, {
-          style: { background: "#2563EB", color: "#fff" },
+      const msg = err.response?.data?.message || "Invalid mobile or password";
+      toast(msg, {
+        style: { background: "#2563EB", color: "#fff" },
       });
-    }finally{
+    } finally {
       setLoading(false);
     }
   };

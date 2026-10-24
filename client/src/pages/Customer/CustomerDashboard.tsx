@@ -17,10 +17,9 @@ import {
   Droplets,
   AlertCircle,
 } from "lucide-react";
-import { currUserService, logoutService } from "../../api/Services/AuthServices";
+import { currUserService } from "../../api/Services/AuthServices";
 import { useEffect, useState } from "react";
 import type { AddressType } from "../../Types/Customer";
-import LoadingPage from "../LoadingPage";
 import LoadingPageNoReturn from "../LoadingPageNoReturn";
 import { avatarPalette, getInitials } from "../../utils/AvatarPalletesAndGetInitials";
 import { 
@@ -30,6 +29,7 @@ import {
   type MonthlyDeliveryEntry
 } from "../../api/Services/Customer/CustomerServices";
 import LogoutModal from "../LogoutModal";
+import { useUser } from "../../hooks/useUser";
 
 type DailyStatus = "delivered" | "skipped" | "pending";
 
@@ -189,7 +189,10 @@ export default function CustomerDashboard() {
 
     try{
       let req = await currUserService()
-      setCustomer(req)
+      console.log(req)
+      const userData = req?.user || req
+      setCustomer(userData)
+
     }catch(err:any){
       console.log("error getting customer details",err)
     }finally{
@@ -212,12 +215,12 @@ export default function CustomerDashboard() {
     setTodayDeliveryTime(d)
   }
 
+  const { logout } = useUser();
+
   const handleLogout = async () => {
     try {
       setLogoutLoading(true);
-
-      await logoutService();
-
+      await logout();
       navigate("/login", { replace: true });
     } catch (err) {
       console.error(err);
@@ -328,8 +331,11 @@ export default function CustomerDashboard() {
             <div className="flex items-center gap-1.5 text-blue-100 text-xs">
               <MapPin size={12} />
               <span>
-                {customer.address.houseNo}, {customer.address.street},{" "}
-                {customer.address.city}
+                {[
+                  customer.address?.houseNo,
+                  customer.address?.street,
+                  customer.address?.city,
+                ].filter(Boolean).join(", ") || "No address provided"}
               </span>
             </div>
           </div>
@@ -709,7 +715,7 @@ export default function CustomerDashboard() {
                 Your Delivery Person
               </p>
               <div className="flex items-center gap-3">
-                <div className={`${avatarPalette[Math.floor(Math.random()*6)-1]} rounded-full w-10 h-10 flex items-center justify-center shrink-0`}>
+                <div className={`${avatarPalette[Math.floor(Math.random() * avatarPalette.length)]} rounded-full w-10 h-10 flex items-center justify-center shrink-0`}>
                   <span className="text-sm font-bold rounded-full">
                     {getInitials(customer.assignedDm.name)}
                   </span>

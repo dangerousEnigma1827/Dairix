@@ -27,11 +27,11 @@ export const createProduct = asyncHandler(async (req, res) => {
 });
 
 export const getProducts = asyncHandler(async (req, res) => {
-    const cache = await redisClient.get("products");
+    // const cache = await redisClient.get("products");
 
-    if(cache){
-        return new ApiResponse(200, JSON.parse(cache), "Products fetched successfully")
-    }
+    // if(cache){
+    //     return new ApiResponse(200, JSON.parse(cache), "Products fetched successfully")
+    // }
 
     const products = await Product.find().sort({ createdAt: -1 });
 

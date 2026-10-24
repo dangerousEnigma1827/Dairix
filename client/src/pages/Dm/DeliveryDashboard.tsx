@@ -23,10 +23,11 @@ import {
 //utils
 import { formatTime } from "../../utils/formatTime";
 import { avatarPalette, getInitials } from "../../utils/AvatarPalletesAndGetInitials";
-import { currUserService, logoutService } from "../../api/Services/AuthServices";
+import { currUserService } from "../../api/Services/AuthServices";
 import { getDmTodayDeliveriesService } from "../../api/Services/Owner/DeliveryEntryServices";
 
 import LogoutModal from "../LogoutModal";
+import { useUser } from "../../hooks/useUser";
 // ── Types — align with your backend response shape ────────────────────────────
 
 type DeliveryStatus = "delivered" | "skipped" | "pending" | "paused";
@@ -136,7 +137,7 @@ export default function DeliveryDashboard() {
     setLoading((prev) => ({ ...prev, dmLoading: true }));
     try {
       const req = await currUserService();
-      setDm(req);
+      setDm(req?.user || req);
     } catch (err) {
       console.error("Error fetching DM profile:", err);
     } finally {
@@ -162,19 +163,15 @@ export default function DeliveryDashboard() {
     handleGetDeliveries();
   }, []);
 
+  const { logout } = useUser();
+
   const handleLogout = async () => {
       try {
-
           setLogoutLoading(true);
-
-          await logoutService();
-
-          navigate("/login", {
-              replace:true
-          });
-
+          await logout();
+          navigate("/login", { replace: true });
       } catch(err) {
-          console.error("Logout failed",err);
+          console.error("Logout failed", err);
       } finally {
           setLogoutLoading(false);
           setLogoutOpen(false);
@@ -263,7 +260,7 @@ export default function DeliveryDashboard() {
               </div>
             </div>
             <div className="flex items-center gap-1.5 text-blue-100 text-xs mt-2">
-              <MapPin size={12} />
+              {/* <MapPin size={12} /> */}
               <span>{dm.zone}</span>
             </div>
           </div>

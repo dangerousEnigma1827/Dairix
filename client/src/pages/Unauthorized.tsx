@@ -1,5 +1,6 @@
-import { ShieldX, ArrowLeft } from "lucide-react";
-import { useNavigate, useRouteError, isRouteErrorResponse } from "react-router-dom";
+import { ShieldX, ArrowLeft, Home } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { useUser } from "../hooks/useUser";
 
 type Props = {
     code?: number;
@@ -8,15 +9,10 @@ type Props = {
 
 function Unauthorized({ code = 403, message = "You are not authorized to access this page." }: Props) {
     const navigate = useNavigate();
-    // const error = useRouteError();
+    const { user } = useUser();
 
     let statusCode = code;
     let errorMessage = message;
-
-    // if (isRouteErrorResponse(error)) {
-    //     statusCode = error.status;
-    //     errorMessage = error.statusText || message;
-    // }
 
     return (
         <div className="h-screen w-full flex items-center justify-center bg-slate-100 p-6">
@@ -47,22 +43,13 @@ function Unauthorized({ code = 403, message = "You are not authorized to access 
 
                 {/* Actions */}
                 <div className="mt-8 flex flex-col gap-3">
-
                     <button
-                        onClick={() => navigate('/login')}
+                        onClick={() => navigate(user ? "/" : "/login")}
                         className="flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-xl transition cursor-pointer"
                     >
-                        <ArrowLeft size={18} />
-                        Go Back
+                        {user ? <Home size={18} /> : <ArrowLeft size={18} />}
+                        {user ? "Go to Dashboard" : "Go to Login"}
                     </button>
-
-                    {/* <button
-                        onClick={() => navigate("/login")}
-                        className="text-blue-600 hover:text-blue-700 text-sm font-medium"
-                    >
-                        Go to Login
-                    </button> */}
-
                 </div>
 
             </div>

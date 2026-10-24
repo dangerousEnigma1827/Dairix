@@ -5,11 +5,14 @@ import {
     getDMById,
     updateDM,
     deleteDM
-} from "../../controllers/Owner/dmControllers.js"
+} from "../../controllers/Owner/dmControllers.js";
+import { authenticate, requireRole } from "../../middlewares/authMiddlewares.js";
 import validate from "../../middlewares/validateMiddlewares.js";
 import createDMSchema from "../../schemas/dmSchemas.js";
 
 const router = express.Router();
+
+router.use(authenticate, requireRole("owner"));
 
 // CREATE DM (Owner only)
 router.post("/", createDM);

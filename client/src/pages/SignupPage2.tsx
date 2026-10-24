@@ -4,6 +4,7 @@ import api from "../api/api";
 import toast from "react-hot-toast";
 import { registerService } from "../api/Services/AuthServices";
 import { useState } from "react";
+import { useUser } from "../hooks/useUser";
 
 type formDataType = {
     name: string;
@@ -80,37 +81,38 @@ function SignupPage2({
 
 
 
+    const { setUser } = useUser();
+
     const handleSubmit = async () => {
         if(!validate()){
             return;
         }
 
-        setLoading(true)
+        setLoading(true);
 
         try{
-            let req = await registerService(formData);
+            const req = await registerService(formData);
+            const newUser = req?.user || req;
+            if (newUser) {
+                setUser(newUser);
+            }
 
             toast(`Created Account Successfully`, {
-                    style: { background: "#2563EB", color: "#fff" },
+                style: { background: "#2563EB", color: "#fff" },
             });
 
-            navigate("/customer");
+            navigate("/customer", { replace: true });
 
         }catch(err:any){
             console.log("error occured while submitting ",err);
-
-            if(err?.response?.data?.message == "An account with this mobile already exists"){
-
-                toast(`An account with this mobile already exists`, {
-                    style: { background: "#2563EB", color: "#fff" },
-                });
-
-            }
+            const msg = err?.response?.data?.message || "Error creating account";
+            toast(msg, {
+                style: { background: "#2563EB", color: "#fff" },
+            });
         }finally{
-            setLoading(false)
+            setLoading(false);
         }
-        
-    }
+    };
 
 
 

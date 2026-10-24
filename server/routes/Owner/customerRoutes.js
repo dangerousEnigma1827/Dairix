@@ -7,26 +7,29 @@ import {
   deleteCustomer,
   assignDeliveryStaff,
 } from "../../controllers/Owner/customerControllers.js";
-import {authenticate} from "../../middlewares/authMiddlewares.js";
+import { authenticate, requireRole } from "../../middlewares/authMiddlewares.js";
 
 const router = express.Router();
 
+// All routes here require owner role
+router.use(authenticate, requireRole("owner"));
+
 // Create customer
-router.post("/", authenticate, createCustomer);
+router.post("/", createCustomer);
 
 // Get all customers
-router.get("/", authenticate, getAllCustomers);
+router.get("/", getAllCustomers);
 
 // Get single customer
-router.get("/:id", authenticate, getCustomerById);
+router.get("/:id", getCustomerById);
 
 // Update customer
-router.put("/:id", authenticate, updateCustomer);
+router.put("/:id", updateCustomer);
 
 // Delete customer
-router.delete("/:id", authenticate, deleteCustomer);
+router.delete("/:id", deleteCustomer);
 
 // Assign / Change Delivery Staff
-router.post("/:customerId/assign-dm", authenticate, assignDeliveryStaff);
+router.post("/:customerId/assign-dm", assignDeliveryStaff);
 
 export default router;

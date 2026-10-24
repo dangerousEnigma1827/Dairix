@@ -9,9 +9,10 @@ import { getAllDms } from "../../api/Services/Owner/DmServices";
 import { useNavigate } from "react-router-dom";
 import { avatarPalette, getInitials } from "../../utils/AvatarPalletesAndGetInitials";
 import { getAllCustomers } from "../../api/Services/Owner/CustomerServices";
+import { getDmCustomersByDmIdService } from "../../api/Services/Dm/DeliveryEntryServices";
 
 type DM = {
-    _id: number;
+    _id: string;
     name: string;
     mobile: string;
 };
@@ -23,28 +24,33 @@ function DeliveryStaff() {
 
     const navigate=useNavigate()
     const [dms, setDms] = useState<DM[]>([]);
+    const [customerCounts, setCustomerCounts] = useState<Record<string, number>>({});
 
     const handleGetDms = async () => {
-        try{
-            console.log("1")
-            let req = await getAllDms();
-            setDms(req)
-        }catch(err:any){
-            console.log("error occured handling all ds", err)
-        }
+    try {
+        const req = await getAllDms();
+        setDms(req);
+        await handleGetCustomerCounts(req);
+    } catch (err: any) {
+        console.log("error occured handling all dms", err);
     }
+};
 
-    const handleDMAdded = (newDM: { name: string; mobile: string }) => {
-        setDms((prev) => [
-            ...prev,
-            {
-                _id: Date.now(),
-                name: newDM.name,
-                mobile: newDM.mobile,
-                // customers: 0,
-                // active: false,
-            },
-        ]);
+    const handleGetCustomerCounts = async (dmsList: DM[]) => {
+        try {
+            const counts: Record<string, number> = {};
+
+            await Promise.all(
+                dmsList.map(async (dm) => {
+                    const customers = await getDmCustomersByDmIdService(dm._id);
+                    counts[dm._id] = customers.length;
+                })
+            );
+
+            setCustomerCounts(counts);
+        } catch (err) {
+            console.log("Error fetching customer counts:", err);
+        }
     };
 
     const filteredDms = dms?.filter(
@@ -66,7 +72,7 @@ function DeliveryStaff() {
         getTotalCustomers()
     },[])
 
-    // const activeCount = dms.filter((dm) => dm.active).length;
+    const activeCount = Object.values(customerCounts).filter(count => count > 0).length;
 
     return (
         <div className="min-h-screen bg-slate-50 p-6 md:p-8">
@@ -100,7 +106,7 @@ function DeliveryStaff() {
                 {/* Stats */}
                 <div className="grid gap-4 sm:grid-cols-3">
                     <div className="flex items-center gap-4 rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-100">
-                        <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-blue-50 text-blue-600">
+                        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-blue-600">
                             <Users size={20} />
                         </div>
                         <div>
@@ -110,17 +116,17 @@ function DeliveryStaff() {
                     </div>
 
                     <div className="flex items-center gap-4 rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-100">
-                        <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600">
+                        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600">
                             <Truck size={20} />
                         </div>
                         <div>
                             <p className="text-sm text-slate-500">Active today</p>
-                            {/* <p className="text-2xl font-bold text-slate-900">{activeCount}</p> */}
+                            <p className="text-2xl font-bold text-slate-900">{activeCount}</p>
                         </div>
                     </div>
 
                     <div className="flex items-center gap-4 rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-100">
-                        <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-amber-50 text-amber-600">
+                        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-amber-50 text-amber-600">
                             <Phone size={20} />
                         </div>
                         <div>
@@ -157,36 +163,19 @@ function DeliveryStaff() {
                                 key={dm._id}
                                 className="group rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-100 transition hover:shadow-md"
                             >
-                                <div className="flex items-start justify-between">
-                                    <div className="flex items-center gap-3">
-                                        <div
-                                            className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-sm font-semibold ${avatarPalette[idx % avatarPalette.length]}`}
-                                        >
-                                            {getInitials(dm.name)}
-                                        </div>
-                                        <div>
-                                            <h2 className="font-semibold text-slate-900">{dm.name}</h2>
-                                            <p className="flex items-center gap-1.5 text-sm text-slate-500">
-                                                <Phone size={13} />
-                                                {dm.mobile}
-                                            </p>
-                                        </div>
-                                    </div>
-
-                                    <span
-                                        // className={`flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium ${
-                                        //     dm.active
-                                        //         ? "bg-emerald-50 text-emerald-700"
-                                        //         : "bg-slate-100 text-slate-500"
-                                        // }`}
+                                <div className="flex items-center gap-3">
+                                    <div
+                                        className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-sm font-semibold ${avatarPalette[idx % avatarPalette.length]}`}
                                     >
-                                        {/* <span
-                                            className={`h-1.5 w-1.5 rounded-full ${
-                                                dm.active ? "bg-emerald-500" : "bg-slate-400"
-                                            }`}
-                                        /> */}
-                                        {/* {dm.active ? "Active" : "Offline"} */}
-                                    </span>
+                                        {getInitials(dm.name)}
+                                    </div>
+                                    <div className="min-w-0">
+                                        <h2 className="truncate font-semibold text-slate-900">{dm.name}</h2>
+                                        <p className="flex items-center gap-1.5 text-sm text-slate-500">
+                                            <Phone size={13} />
+                                            {dm.mobile}
+                                        </p>
+                                    </div>
                                 </div>
 
                                 <div className="mt-4 flex items-center justify-between rounded-xl bg-slate-50 px-4 py-3">
@@ -194,19 +183,20 @@ function DeliveryStaff() {
                                         <Truck size={15} />
                                         Assigned customers
                                     </span>
-                                    {/* <span className="text-lg font-bold text-slate-900">{dm.customers}</span> */}
+                                    <span className="text-lg font-bold text-slate-900">
+                                        {customerCounts[dm._id] ?? 0}
+                                    </span>
                                 </div>
 
-                                <div className="mt-4 flex items-center justify-between">
-                                    <button className="flex items-center gap-1 text-sm font-medium text-blue-600 transition hover:gap-1.5 hover:text-blue-700" onClick={()=>{
-                                        navigate(`/owner/delivery-staff/${dm._id}`)
-                                    }}>
+                                <div className="mt-4 flex items-center justify-between border-t border-slate-100 pt-4">
+                                    <button
+                                        className="flex items-center gap-1 text-sm font-medium text-blue-600 transition hover:gap-1.5 hover:text-blue-700"
+                                        onClick={()=>{
+                                            navigate(`/owner/delivery-staff/${dm._id}`)
+                                        }}
+                                    >
                                         View details
                                         <ArrowUpRight size={14} />
-                                    </button>
-
-                                    <button className="rounded-lg bg-slate-100 px-3.5 py-1.5 text-sm font-medium text-slate-700 transition hover:bg-slate-200">
-                                        Assign
                                     </button>
                                 </div>
                             </div>

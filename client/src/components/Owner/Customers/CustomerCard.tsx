@@ -63,8 +63,8 @@ function CustomerCard({ customer, idx }: CustomerCardProps) {
                     {getInitials(customer.name)}
                 </div>
 
-                <div>
-                    <h2 className="font-semibold text-slate-900">
+                <div className="min-w-0">
+                    <h2 className="truncate font-semibold text-slate-900">
                         {customer.name}
                     </h2>
 
@@ -78,10 +78,10 @@ function CustomerCard({ customer, idx }: CustomerCardProps) {
 
 
             {/* Delivery Staff */}
-            <div className="mt-4 rounded-xl bg-slate-50 px-4 py-3">
+            <div className="mt-4 rounded-xl bg-slate-50 p-4">
 
-                <p className="mb-1.5 text-xs font-medium uppercase tracking-wide text-slate-400">
-                    Assigned Delivery Staff
+                <p className="mb-1.5 text-xs font-medium text-slate-400">
+                    Assigned delivery staff
                 </p>
 
 
@@ -101,7 +101,7 @@ function CustomerCard({ customer, idx }: CustomerCardProps) {
                         </span>
 
 
-                        <span className="ml-5 text-xs text-slate-500">
+                        <span className="ml-[22px] text-xs text-slate-500">
                             {customer.assignedDm.mobile}
                         </span>
 
@@ -109,8 +109,8 @@ function CustomerCard({ customer, idx }: CustomerCardProps) {
 
                 ) : (
 
-                    <span className="inline-flex rounded-full bg-rose-50 px-2.5 py-1 text-xs font-medium text-rose-600">
-                        No Delivery Staff Assigned
+                    <span className="inline-flex rounded-full bg-red-50 px-2.5 py-1 text-xs font-medium text-red-600">
+                        No delivery staff assigned
                     </span>
 
                 )}
@@ -120,39 +120,39 @@ function CustomerCard({ customer, idx }: CustomerCardProps) {
 
 
             {/* Address */}
-            <div className="mt-4 rounded-xl border border-slate-100 bg-slate-50 p-4">
+            <div className="mt-3 rounded-xl bg-slate-50 p-4">
 
-                <p className="mb-3 text-xs font-medium uppercase tracking-wide text-slate-400">
+                <p className="mb-2 text-xs font-medium text-slate-400">
                     Address
                 </p>
 
                 {hasAddress(customer.address) ? (
-                    <div className="space-y-2 text-sm text-slate-600">
+                    <div className="space-y-1.5 text-sm text-slate-600">
 
                         {houseNo && (
                             <div className="flex items-center gap-2">
-                                <Home size={15} className="shrink-0 text-blue-600"/>
+                                <Home size={14} className="shrink-0 text-slate-400"/>
                                 <span>{houseNo}</span>
                             </div>
                         )}
 
                         {street && (
                             <div className="flex items-center gap-2">
-                                <MapPinned size={15} className="shrink-0 text-emerald-600"/>
+                                <MapPinned size={14} className="shrink-0 text-slate-400"/>
                                 <span>{street}</span>
                             </div>
                         )}
 
                         {landmark && (
                             <div className="flex items-center gap-2">
-                                <Building2 size={15} className="shrink-0 text-amber-600"/>
+                                <Building2 size={14} className="shrink-0 text-slate-400"/>
                                 <span>{landmark}</span>
                             </div>
                         )}
 
                         {(city || pincode) && (
                             <div className="flex items-center gap-2">
-                                <Map size={15} className="shrink-0 text-violet-600"/>
+                                <Map size={14} className="shrink-0 text-slate-400"/>
                                 <span>
                                     {city}
                                     {city && pincode && " - "}
@@ -171,7 +171,7 @@ function CustomerCard({ customer, idx }: CustomerCardProps) {
 
 
             {/* Actions */}
-            <div className="mt-4 flex items-center justify-between">
+            <div className="mt-4 flex items-center justify-between border-t border-slate-100 pt-4">
 
                 <button className="flex items-center gap-1 text-sm font-medium text-blue-600 transition hover:gap-1.5 hover:text-blue-700">
 

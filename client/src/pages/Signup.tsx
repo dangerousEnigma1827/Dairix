@@ -1,9 +1,20 @@
-import React from 'react'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { useUser } from '../hooks/useUser'
 import SignupPage1 from './SignupPage1'
 import SignupPage2 from './SignupPage2'
 
 function Signup() {
+    const navigate = useNavigate();
+    const { user, loading } = useUser();
+
+    useEffect(() => {
+        if (user && !loading) {
+            if (user.role === "owner") navigate("/owner", { replace: true });
+            else if (user.role === "dm") navigate("/dm", { replace: true });
+            else navigate("/customer", { replace: true });
+        }
+    }, [user, loading, navigate]);
     type formDataType = {
         // Step 1: Account details
         name: string;

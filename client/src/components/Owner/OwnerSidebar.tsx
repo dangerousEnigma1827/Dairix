@@ -5,19 +5,19 @@ import {
     Users, 
     Truck, 
     UserCog, 
-    CreditCard,
     LogOut
 } from "lucide-react";
 
 import { NavLink, useNavigate } from "react-router-dom";
 import { useState } from "react";
 
-import { logoutService } from "../../api/Services/AuthServices";
 import LogoutModal from "../../pages/LogoutModal";
+import { useUser } from "../../hooks/useUser";
 
 function OwnerSidebar() {
 
     const navigate = useNavigate();
+    const { logout } = useUser();
 
     const [logoutOpen, setLogoutOpen] = useState(false);
     const [logoutLoading, setLogoutLoading] = useState(false);
@@ -25,17 +25,11 @@ function OwnerSidebar() {
 
     const handleLogout = async () => {
         try {
-
             setLogoutLoading(true);
-
-            await logoutService();
-
-            navigate("/login", {
-                replace:true
-            });
-
+            await logout();
+            navigate("/login", { replace: true });
         } catch(err) {
-            console.error("Logout failed",err);
+            console.error("Logout failed", err);
         } finally {
             setLogoutLoading(false);
             setLogoutOpen(false);
@@ -163,7 +157,7 @@ function OwnerSidebar() {
                 </NavLink>
 
 
-
+{/* 
                 <NavLink
                     to="/owner/payments"
                     className={({isActive}) =>
@@ -177,7 +171,7 @@ function OwnerSidebar() {
                 >
                     <CreditCard size={20}/>
                     Payments
-                </NavLink>
+                </NavLink> */}
 
 
             </nav>

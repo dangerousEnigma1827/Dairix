@@ -6,12 +6,12 @@ import validate from '../middlewares/validateMiddlewares.js'
 
 const router = Router();
 
-// router.post("/signup", validate(signUpSchema), signup);
-router.post("/signup", signup);
-// router.post("/login", validate(loginSchema), login);
-router.post("/login", login);
-router.post("/logout",authenticate, logout);
-router.get("/me", authenticate, getMe); // protected
+router.post("/signup", validate(signUpSchema), signup);
+router.post("/login", validate(loginSchema), login);
+router.post("/logout", authenticate, logout);
+router.get("/me", authenticate, (req,res)=>{
+    getMe(req,res);
+});
 router.get(`/:_id`, authenticate, getUserFromId); // protected
 
 export default router;

@@ -14,6 +14,7 @@ import { useNavigate, useParams } from "react-router-dom";
 
 import { getAllDms } from "../../api/Services/Owner/DmServices";
 import { getCustomerById , assignDm} from "../../api/Services/Owner/CustomerServices";
+import { getDmCustomersByDmIdService, getDmCustomersService } from "../../api/Services/Dm/DeliveryEntryServices";
 // import { getCustomerById, assignDm } from "../../api/Services/Owner/CustomerServices";
 
 type DM = {
@@ -79,6 +80,7 @@ function AssignDM() {
         getCustomerData:false
     });
     const [assigning, setAssigning] = useState(false);
+    const [customerCounts, setCustomerCounts] = useState<Record<string, number>>({});
 
     const filteredDms = dms.filter(
         (dm) =>
@@ -95,6 +97,7 @@ function AssignDM() {
             const dmsRes = await getAllDms();
             setDms(dmsRes);
             
+            await handleGetCustomers(dmsRes);
             if(!customerId) return
             const customerRes = await getCustomerById(customerId)
             console.log(customerRes)
@@ -131,6 +134,23 @@ function AssignDM() {
             console.log("error assigning dm", err);
         } finally {
             setAssigning(false);
+        }
+    };
+
+    const handleGetCustomers = async (dmsList: DM[]) => {
+        try {
+            const counts: Record<string, number> = {};
+
+            await Promise.all(
+                dmsList.map(async (dm) => {
+                    const res = await getDmCustomersByDmIdService(dm._id);
+                    counts[dm._id] = res.length;
+                })
+            );
+
+            setCustomerCounts(counts);
+        } catch (err) {
+            console.log("Error occurred", err);
         }
     };
 
@@ -299,7 +319,7 @@ function AssignDM() {
                                             Assigned customers
                                         </span>
                                         <span className="font-semibold text-slate-700">
-                                            {dm.customers ?? 0}
+                                            {customerCounts[dm._id] ?? 0}
                                         </span>
                                     </div>
                                 </div>

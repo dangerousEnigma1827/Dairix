@@ -7,8 +7,20 @@ import errorMiddlewares from "./middlewares/errorMiddlewares.js";
 
 const app = express();
 
+const allowedOrigins = [
+  process.env.CLIENT_ORIGIN,
+  "http://localhost:5173",
+  "http://127.0.0.1:5173"
+].filter(Boolean);
+
 app.use(cors({
-  origin: process.env.CLIENT_ORIGIN || "http://localhost:5173",
+  origin: (origin, callback) => {
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error("Not allowed by CORS"));
+    }
+  },
   credentials: true
 }));
 app.use(express.json());
@@ -40,11 +52,11 @@ app.use('/api/products', productRoutes)
 app.use('/api/dm', dmRoutes)
 app.use('/api/bydm/dm', dmRoutesByDm)
 
-app.use('/api/customers', customerRoutes)
-app.use('/api/customers', customerRoutesByCustomers)
-app.use('/api/dispatch', dispatchRoutes)
-app.use('/api/deliveryEntry', deliveryEntryRoutes)
-app.use('/api/dashboard', ownerDashboardRoutes)
+app.use('/api/customers', customerRoutesByCustomers);
+app.use('/api/customers', customerRoutes);
+app.use('/api/dispatch', dispatchRoutes);
+app.use('/api/deliveryEntry', deliveryEntryRoutes);
+app.use('/api/dashboard', ownerDashboardRoutes);
 
 
 //404 + global error handler

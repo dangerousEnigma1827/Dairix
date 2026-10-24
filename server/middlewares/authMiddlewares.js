@@ -28,10 +28,13 @@ export const authenticate = asyncHandler(async (req, _res, next) => {
 
  
 export const requireRole = (...roles) => {
-    return asyncHandler(async (req, _res, next) => {
-        if (!roles.includes(req.user.role)) {
-            throw new ApiError(403, `Access denied — required role: ${roles.join(" or ")}`);
-        }
-        next();
+  return asyncHandler(async (req, _res, next) => {
+    if (!req.user) {
+      throw new ApiError(401, "Not authenticated, please log in");
+    }
+    if (!roles.includes(req.user.role)) {
+      throw new ApiError(403, `Access denied — required role: ${roles.join(" or ")}`);
+    }
+    next();
   });
-}
+};

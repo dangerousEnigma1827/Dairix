@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { LogOut, X } from "lucide-react";
 import { avatarPalette, getInitials } from "../utils/AvatarPalletesAndGetInitials";
+import { createPortal } from "react-dom";
 
 type LogoutUser = {
   name: string;
@@ -16,18 +17,6 @@ type LogoutModalProps = {
 };
 
 export default function LogoutModal({ open, onClose, onConfirm, loading = false, user }: LogoutModalProps) {
-  const [visible, setVisible] = useState(false);
-
-  // Small mount delay so the enter transition actually animates from its start state
-  useEffect(() => {
-    if (open) {
-      const t = setTimeout(() => setVisible(true), 10);
-      return () => clearTimeout(t);
-    }
-    setVisible(false);
-  }, [open]);
-
-  // Lock background scroll + close on Escape while open
   useEffect(() => {
     if (!open) return;
     document.body.style.overflow = "hidden";
@@ -43,84 +32,84 @@ export default function LogoutModal({ open, onClose, onConfirm, loading = false,
 
   if (!open) return null;
 
-  return (
-    <div className="fixed inset-0 z-100000 flex items-center justify-center p-4">
-      {/* Backdrop */}
-      <div
-        onClick={onClose}
-        className={`absolute inset-0 bg-slate-900/40 transition-opacity duration-200 ${
-          visible ? "opacity-100" : "opacity-0"
-        }`}
-      />
+return createPortal(
+    <div className="fixed inset-0 z-[999999] flex items-center justify-center bg-black/40 p-4 backdrop-blur-md">
+        <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="logout-modal-title"
+            className="w-full max-w-sm overflow-hidden rounded-2xl bg-white shadow-2xl ring-1 ring-slate-100"
+        >
+            <div className="p-6">
+                <div className="flex items-start justify-between">
+                    <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-blue-50 text-blue-600">
+                        <LogOut size={20} />
+                    </div>
 
-      {/* Card */}
-      <div
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="logout-modal-title"
-        className={`relative w-full max-w-sm overflow-hidden rounded-2xl bg-white shadow-2xl ring-1 ring-slate-100 transition-all duration-200 ${
-          visible ? "opacity-100 scale-100" : "opacity-0 scale-95"
-        }`}
-      >
-        {/* Top accent strip — same "colored accent" language used on status cards elsewhere */}
-        <div className="h-1 w-full bg-rose-500" />
+                    <button
+                        onClick={onClose}
+                        aria-label="Close"
+                        className="rounded-lg p-1.5 text-slate-400 transition hover:bg-slate-100 hover:text-slate-600"
+                    >
+                        <X size={18} />
+                    </button>
+                </div>
 
-        {/* Decorative accent blurs — same technique as the Owner console stat cards */}
-        <div className="pointer-events-none absolute -right-8 -top-8 h-28 w-28 rounded-full bg-rose-50 blur-2xl" />
-        <div className="pointer-events-none absolute -left-10 bottom-0 h-28 w-28 rounded-full bg-blue-50 blur-2xl" />
+                <h2
+                    id="logout-modal-title"
+                    className="mt-4 text-lg font-semibold text-slate-900"
+                >
+                    Log out{user?.name ? `, ${user.name.split(" ")[0]}` : ""}?
+                </h2>
 
-        <div className="relative p-6">
-          <button
-            onClick={onClose}
-            className="absolute right-4 top-4 p-1.5 rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition-colors"
-          >
-            <X size={16} />
-          </button>
+                <p className="mt-1 text-sm text-slate-500">
+                    You'll need to sign in again to access your account.
+                </p>
 
-          <div className="bg-rose-50 w-12 h-12 rounded-2xl flex items-center justify-center ring-4 ring-rose-50/60 mb-4">
-            <LogOut size={22} className="text-rose-500" />
-          </div>
+                {user && (
+                    <div className="mt-4 flex items-center gap-3 rounded-xl bg-slate-50 p-3">
+                        <div
+                            className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-xs font-semibold ${avatarPalette[0]}`}
+                        >
+                            {getInitials(user.name)}
+                        </div>
 
-          <h2 id="logout-modal-title" className="text-lg font-bold text-slate-900">
-            Log out{user?.name ? `, ${user.name.split(" ")[0]}` : ""}?
-          </h2>
-          <p className="text-sm text-slate-500 mt-1">
-            You'll need to sign in again to access your account.
-          </p>
+                        <div className="min-w-0">
+                            <p className="truncate text-sm font-medium text-slate-800">
+                                {user.name}
+                            </p>
 
-          {user && (
-            <div className="mt-4 flex items-center gap-3 rounded-xl bg-slate-50 ring-1 ring-slate-100 p-3">
-              <div
-                className={`${avatarPalette[0]} rounded-full w-9 h-9 flex items-center justify-center text-xs font-bold shrink-0`}
-              >
-                {getInitials(user.name)}
-              </div>
-              <div className="min-w-0">
-                <p className="text-sm font-semibold text-slate-800 truncate">{user.name}</p>
-                {user.mobile && <p className="text-xs text-slate-400 truncate">{user.mobile}</p>}
-              </div>
+                            {user.mobile && (
+                                <p className="truncate text-xs text-slate-500">
+                                    {user.mobile}
+                                </p>
+                            )}
+                        </div>
+                    </div>
+                )}
+
+                <div className="mt-6 flex gap-3">
+                    <button
+                        onClick={onClose}
+                        disabled={loading}
+                        className="flex-1 rounded-xl px-4 py-2.5 text-sm font-medium text-slate-600 transition hover:bg-slate-100 disabled:opacity-50"
+                    >
+                        Cancel
+                    </button>
+
+                    <button
+                        onClick={onConfirm}
+                        disabled={loading}
+                        className="flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-70"
+                    >
+                        <LogOut size={15} />
+                        {loading ? "Logging out…" : "Log out"}
+                    </button>
+                </div>
             </div>
-          )}
-
-          <div className="flex gap-2 mt-6">
-            <button
-              onClick={onClose}
-              disabled={loading}
-              className="flex-1 py-2.5 rounded-xl ring-1 ring-slate-200 bg-white text-sm font-semibold text-slate-700 hover:bg-slate-50 active:scale-95 transition-all disabled:opacity-50"
-            >
-              Cancel
-            </button>
-            <button
-              onClick={onConfirm}
-              disabled={loading}
-              className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl bg-rose-500 text-sm font-semibold text-white shadow-sm shadow-rose-200 hover:bg-rose-600 hover:shadow-md active:scale-95 transition-all disabled:opacity-60"
-            >
-              <LogOut size={14} />
-              {loading ? "Logging out…" : "Log out"}
-            </button>
-          </div>
         </div>
-      </div>
-    </div>
-  );
+    </div>,
+    document.body
+)
+
 }

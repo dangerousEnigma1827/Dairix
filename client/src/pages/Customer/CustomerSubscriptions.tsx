@@ -181,9 +181,10 @@ export default function CustomerSubscriptions() {
 
     try{
       let req = await currUserService()
-      setCustomer(req)
-      console.log(req)
-      setSubs(req.products)
+      const userData = req?.user || req
+      setCustomer(userData)
+      console.log(userData)
+      setSubs(userData?.products || [])
     }catch(err:any){
       console.log("error getting customer details",err)
     }finally{

@@ -96,7 +96,8 @@ export default function CustomerQRPage() {
       try{
         let req = await currUserService()
         console.log(req)
-        setCustomer(req)
+        const userData = req?.user || req
+        setCustomer(userData)
       }catch(err:any){
         console.log("error getting customer details",err)
       }finally{
@@ -206,8 +207,11 @@ export default function CustomerQRPage() {
                 <div>
                   <p className="text-xs text-slate-400">Address</p>
                   <p className="text-sm font-semibold text-slate-800">
-                    {customer?.address.houseNo}, {customer?.address.street},{" "}
-                    {customer?.address.city}
+                    {[
+                      customer?.address?.houseNo,
+                      customer?.address?.street,
+                      customer?.address?.city
+                    ].filter(Boolean).join(", ") || "No address provided"}
                   </p>
                 </div>
               </div>

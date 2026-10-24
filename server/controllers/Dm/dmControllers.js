@@ -21,3 +21,26 @@ export const getDmCustomers = async(req,res)=>{
         });
     }
 };
+
+
+export const getDmCustomersById = async(req,res)=>{
+    try{
+        const dmId = req.params.dmId;
+
+        const customers = await User.find({
+            role:"customer",
+            assignedDm:dmId
+        })
+        .select("-password");
+
+        return res.status(200).json({
+            customers
+        });
+
+    }catch(err){
+        console.log("GET DM CUSTOMERS ERROR:",err);
+        return res.status(500).json({
+            message:"Server error"
+        });
+    }
+};

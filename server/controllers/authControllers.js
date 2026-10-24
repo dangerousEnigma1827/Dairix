@@ -55,6 +55,8 @@ export const signup = asyncHandler(async (req, res) => {
     { expiresIn: process.env.JWT_EXPIRES_IN || "7d" }
   );
 
+  const userData = user.toObject ? user.toObject() : { ...user._doc };
+  delete userData.password;
 
   return res
     .status(201)
@@ -62,7 +64,7 @@ export const signup = asyncHandler(async (req, res) => {
     .json(
       new ApiResponse(
         201,
-        { user },
+        { user: userData },
         "Signup Successful"
       )
     );
@@ -97,10 +99,13 @@ export const login = asyncHandler(async (req, res) => {
     { expiresIn: "7d" }
   );
 
+  const userData = user.toObject();
+  delete userData.password;
+
   return res
     .status(200)
     .cookie("token", token, cookieOptions)
-    .json(new ApiResponse(200, {user}, "User Logged In Successfully"))
+    .json(new ApiResponse(200, { user: userData }, "User Logged In Successfully"))
 });
 
 
@@ -113,29 +118,24 @@ export const logout = asyncHandler(async (_req, res) => {
 
 
 export const getMe = asyncHandler(async (req, res) => {
-  const cache = await redisClient.get(`customer:${req.user._id}`);
-  if(cache){
-    return res.json(new ApiResponse(200, cache, "User fetched successfully"));
-  }
-
-  const user = await User.findById(req.user._id).populate("assignedDm");
+  const user = await User.findById(req.user._id)
+    .populate("assignedDm");
 
   if (!user) {
     throw new ApiError(404, "User not found");
   }
 
-  await redisClient.set(`customer:${req.user._id}`,
-    JSON.stringify(user),
-    {
-      EX:600
-    }
+  const userData = user.toObject();
+  delete userData.password;
+
+  res.json(
+    new ApiResponse(
+      200,
+      { user: userData },
+      "User fetched successfully"
+    )
   );
-
-  
-
-  res.json(new ApiResponse(200, JSON.parse(user), "User fetched successfully"));
 });
-
 
 export const getUserFromId = asyncHandler(async (req, res) => {
   const user = await User.findById(req.params._id).populate("assignedDm");

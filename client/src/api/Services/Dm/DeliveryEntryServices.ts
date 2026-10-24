@@ -9,6 +9,12 @@ export const updateDeliveryEntryService = async (customerId:string, status: "del
 
 export const getDmCustomersService = async () => {
     const req = await api.get('/bydm/dm/customers')
-    console.log(req.data)
     return req.data.customers
 }
+
+
+export const getDmCustomersByDmIdService = async (dmId:string) => {
+    const req = await api.get(`/bydm/dm/${dmId}/customers`)
+    return req.data.customers
+}
+

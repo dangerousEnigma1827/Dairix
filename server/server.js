@@ -12,7 +12,7 @@ const startServer = async () => {
   startUpdatingDeliveryJob()
   const server = http.createServer(app);
 
-  server.listen(PORT, "0.0.0.0", () => {
+  server.listen(PORT, () => {
     console.log(`[Dairix] running on port ${PORT} — ${process.env.NODE_ENV} mode`);
   });
 
