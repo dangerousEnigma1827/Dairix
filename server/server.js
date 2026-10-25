@@ -1,16 +1,18 @@
 import http from "http";
 import app from "./app.js";
 import { dbConnect } from "./config/dbConnect.js";
-import {startUpdatingDeliveryJob} from "./jobs/deliveryCron.js"
+import { startUpdatingDeliveryJob } from "./jobs/deliveryCron.js";
 import { connectRedis } from "./config/redis.js";
+import { initSocket } from "./config/socket.js";
 
 const PORT = process.env.PORT || 5000;
 
 const startServer = async () => {
   await dbConnect();
   await connectRedis();
-  startUpdatingDeliveryJob()
+  startUpdatingDeliveryJob();
   const server = http.createServer(app);
+  initSocket(server);
 
   server.listen(PORT, () => {
     console.log(`[Dairix] running on port ${PORT} — ${process.env.NODE_ENV} mode`);
