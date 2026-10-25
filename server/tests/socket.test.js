@@ -247,25 +247,29 @@ describe('Socket.IO Integration & Delivery Session Workflow', () => {
     });
   });
 
-  test('7. Customer role is rejected when attempting to start delivery session', (done) => {
+  test('7. Customer role is rejected when attempting to start delivery session', async () => {
     const customerSocket = Client(`http://localhost:${serverPort}`, {
       auth: { token: customerToken },
       transports: ['websocket'],
     });
 
-    customerSocket.on('connect', () => {
+    await new Promise((res) =>
+      customerSocket.connected ? res() : customerSocket.on('connect', res)
+    );
+
+    await new Promise((resolve, reject) => {
       customerSocket.emit('delivery:session:start', (res) => {
         try {
           expect(res.success).toBe(false);
           expect(res.message).toMatch(/Access denied/);
-          customerSocket.disconnect();
-          done();
+          resolve();
         } catch (err) {
-          customerSocket.disconnect();
-          done(err);
+          reject(err);
         }
       });
     });
+
+    customerSocket.disconnect();
   });
 
   test('8. DM with 0 pending orders is rejected from starting a session', async () => {
@@ -427,7 +431,7 @@ describe('Socket.IO Integration & Delivery Session Workflow', () => {
 
   // ── 5. Stop Session & Disconnection Tests ─────────────────────────────────
 
-  test('12. Stopping session notifies owner and removes DM from active sessions', (done) => {
+  test('12. Stopping session notifies owner and removes DM from active sessions', async () => {
     const ownerSocket = Client(`http://localhost:${serverPort}`, {
       auth: { token: ownerToken },
       transports: ['websocket'],
@@ -438,36 +442,49 @@ describe('Socket.IO Integration & Delivery Session Workflow', () => {
       transports: ['websocket'],
     });
 
-    ownerSocket.on('connect', () => {
-      dmSocket.on('connect', () => {
-        dmSocket.emit('delivery:session:start', () => {
-          expect(getSession(testDm._id.toString())).toBeDefined();
+    const waitForConnect = (sock) =>
+      new Promise((res) => (sock.connected ? res() : sock.on('connect', res)));
 
-          ownerSocket.on('delivery:dm:inactive', (payload) => {
-            try {
-              expect(payload.dmId).toBe(testDm._id.toString());
-              expect(payload.reason).toBe('stopped');
-              expect(getSession(testDm._id.toString())).toBeNull();
+    await Promise.all([waitForConnect(ownerSocket), waitForConnect(dmSocket)]);
 
-              ownerSocket.disconnect();
-              dmSocket.disconnect();
-              done();
-            } catch (err) {
-              ownerSocket.disconnect();
-              dmSocket.disconnect();
-              done(err);
-            }
-          });
-
-          dmSocket.emit('delivery:session:stop', (stopRes) => {
-            expect(stopRes.success).toBe(true);
-          });
-        });
+    // DM starts session
+    await new Promise((resolve) => {
+      dmSocket.emit('delivery:session:start', (res) => {
+        expect(res.success).toBe(true);
+        expect(getSession(testDm._id.toString())).toBeDefined();
+        resolve();
       });
     });
+
+    // Owner waits for inactive event
+    const inactivePromise = new Promise((resolve, reject) => {
+      ownerSocket.on('delivery:dm:inactive', (payload) => {
+        try {
+          expect(payload.dmId).toBe(testDm._id.toString());
+          expect(payload.reason).toBe('stopped');
+          expect(getSession(testDm._id.toString())).toBeNull();
+          resolve();
+        } catch (err) {
+          reject(err);
+        }
+      });
+    });
+
+    // DM stops session
+    await new Promise((resolve) => {
+      dmSocket.emit('delivery:session:stop', (stopRes) => {
+        expect(stopRes.success).toBe(true);
+        resolve();
+      });
+    });
+
+    await inactivePromise;
+
+    ownerSocket.disconnect();
+    dmSocket.disconnect();
   });
 
-  test('13. Disconnecting DM terminates session and notifies owner', (done) => {
+  test('13. Disconnecting DM terminates session and notifies owner', async () => {
     const ownerSocket = Client(`http://localhost:${serverPort}`, {
       auth: { token: ownerToken },
       transports: ['websocket'],
@@ -478,29 +495,175 @@ describe('Socket.IO Integration & Delivery Session Workflow', () => {
       transports: ['websocket'],
     });
 
-    ownerSocket.on('connect', () => {
-      dmSocket.on('connect', () => {
-        dmSocket.emit('delivery:session:start', () => {
-          expect(getSession(testDm._id.toString())).toBeDefined();
+    const waitForConnect = (sock) =>
+      new Promise((res) => (sock.connected ? res() : sock.on('connect', res)));
 
-          ownerSocket.on('delivery:dm:inactive', (payload) => {
-            try {
-              expect(payload.dmId).toBe(testDm._id.toString());
-              expect(payload.reason).toBe('disconnected');
-              expect(getSession(testDm._id.toString())).toBeNull();
+    await Promise.all([waitForConnect(ownerSocket), waitForConnect(dmSocket)]);
 
-              ownerSocket.disconnect();
-              done();
-            } catch (err) {
-              ownerSocket.disconnect();
-              done(err);
-            }
-          });
-
-          // Disconnect DM socket abruptly
-          dmSocket.disconnect();
-        });
+    // DM starts session
+    await new Promise((resolve) => {
+      dmSocket.emit('delivery:session:start', (res) => {
+        expect(res.success).toBe(true);
+        expect(getSession(testDm._id.toString())).toBeDefined();
+        resolve();
       });
     });
+
+    // Owner waits for inactive broadcast upon DM disconnect
+    const inactivePromise = new Promise((resolve, reject) => {
+      ownerSocket.on('delivery:dm:inactive', (payload) => {
+        try {
+          expect(payload.dmId).toBe(testDm._id.toString());
+          expect(payload.reason).toBe('disconnected');
+          expect(getSession(testDm._id.toString())).toBeNull();
+          resolve();
+        } catch (err) {
+          reject(err);
+        }
+      });
+    });
+
+    // Disconnect DM socket abruptly
+    dmSocket.disconnect();
+    await inactivePromise;
+
+    ownerSocket.disconnect();
+  });
+
+  // ── 6. Phase 3: Owner Live Map Snapshot & Authorization Tests ─────────────
+
+  test('14. Owner can query active delivery sessions snapshot via Socket.IO', async () => {
+    const ownerSocket = Client(`http://localhost:${serverPort}`, {
+      auth: { token: ownerToken },
+      transports: ['websocket'],
+    });
+
+    const dmSocket = Client(`http://localhost:${serverPort}`, {
+      auth: { token: dmToken },
+      transports: ['websocket'],
+    });
+
+    const waitForConnect = (sock) =>
+      new Promise((res) => (sock.connected ? res() : sock.on('connect', res)));
+
+    await Promise.all([waitForConnect(ownerSocket), waitForConnect(dmSocket)]);
+
+    // DM starts session and sends GPS update
+    await new Promise((resolve) => {
+      dmSocket.emit('delivery:session:start', () => {
+        dmSocket.emit(
+          'delivery:location:update',
+          { latitude: 12.9716, longitude: 77.5946, speed: 25 },
+          resolve
+        );
+      });
+    });
+
+    // Owner queries snapshot
+    await new Promise((resolve, reject) => {
+      ownerSocket.emit('delivery:active-sessions:request', (res) => {
+        try {
+          expect(res.success).toBe(true);
+          expect(Array.isArray(res.sessions)).toBe(true);
+          const found = res.sessions.find((s) => s.dmId === testDm._id.toString());
+          expect(found).toBeDefined();
+          expect(found.name).toBe(testDm.name);
+          expect(found.lastLocation).toBeDefined();
+          expect(found.lastLocation.latitude).toBe(12.9716);
+          expect(found.lastLocation.longitude).toBe(77.5946);
+          // Sensitive server socketId is not exposed
+          expect(found.socketId).toBeUndefined();
+          resolve();
+        } catch (err) {
+          reject(err);
+        }
+      });
+    });
+
+    dmSocket.disconnect();
+    ownerSocket.disconnect();
+  });
+
+  test('15. Non-owner (customer) is rejected when requesting active sessions snapshot', async () => {
+    const customerSocket = Client(`http://localhost:${serverPort}`, {
+      auth: { token: customerToken },
+      transports: ['websocket'],
+    });
+
+    await new Promise((res) =>
+      customerSocket.connected ? res() : customerSocket.on('connect', res)
+    );
+
+    await new Promise((resolve, reject) => {
+      customerSocket.emit('delivery:active-sessions:request', (res) => {
+        try {
+          // Non-owner does not have owner handlers registered or gets access denied
+          if (res) {
+            expect(res.success).toBe(false);
+          }
+          resolve();
+        } catch (err) {
+          reject(err);
+        }
+      });
+      // Safety timeout: if server doesn't respond because handler wasn't registered for customer
+      setTimeout(resolve, 800);
+    });
+
+    customerSocket.disconnect();
+  });
+
+  test('16. Owner can fetch active sessions snapshot via REST endpoint', async () => {
+    const dmSocket = Client(`http://localhost:${serverPort}`, {
+      auth: { token: dmToken },
+      transports: ['websocket'],
+    });
+
+    await new Promise((res) =>
+      dmSocket.connected ? res() : dmSocket.on('connect', res)
+    );
+
+    await new Promise((resolve) => {
+      dmSocket.emit('delivery:session:start', () => {
+        dmSocket.emit(
+          'delivery:location:update',
+          { latitude: 12.9716, longitude: 77.5946 },
+          resolve
+        );
+      });
+    });
+
+    const response = await fetch(
+      `http://localhost:${serverPort}/api/dashboard/active-delivery-sessions`,
+      {
+        headers: {
+          Cookie: `token=${ownerToken}`,
+        },
+      }
+    );
+
+    expect(response.status).toBe(200);
+    const json = await response.json();
+    expect(json.success).toBe(true);
+    expect(Array.isArray(json.data)).toBe(true);
+    const found = json.data.find((s) => s.dmId === testDm._id.toString());
+    expect(found).toBeDefined();
+    expect(found.lastLocation.latitude).toBe(12.9716);
+
+    dmSocket.disconnect();
+  });
+
+  test('17. Customer is rejected from REST active sessions endpoint', async () => {
+    const response = await fetch(
+      `http://localhost:${serverPort}/api/dashboard/active-delivery-sessions`,
+      {
+        headers: {
+          Cookie: `token=${customerToken}`,
+        },
+      }
+    );
+
+    // Should be forbidden for role: customer
+    expect(response.status).toBe(403);
   });
 });

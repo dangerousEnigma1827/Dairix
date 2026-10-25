@@ -10,8 +10,10 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@types/leaflet": "^1.9.22",
     "@zxing/browser": "^0.2.1",
     "axios": "^1.18.1",
+    "leaflet": "^1.9.4",
     "lucide-react": "^1.23.0",
     "qrcode": "^1.5.4",
     "qrcode.react": "^4.2.0",

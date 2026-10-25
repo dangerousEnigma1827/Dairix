@@ -1,5 +1,6 @@
 import {
   registerDeliverySessionHandlers,
+  registerOwnerDeliveryHandlers,
   handleDisconnect as handleSessionDisconnect,
 } from "./deliverySession.js";
 
@@ -21,9 +22,12 @@ export const registerConnectionHandlers = (io) => {
       socket.join(`role:${user.role}`);
     }
 
-    // Register delivery session events for delivery personnel
-    if (user?.role === "dm") {
-      registerDeliverySessionHandlers(io, socket);
+    // Register delivery session events (internally enforces role checks and returns descriptive error callbacks)
+    registerDeliverySessionHandlers(io, socket);
+
+    // Register live tracking handlers for owners
+    if (user?.role === "owner") {
+      registerOwnerDeliveryHandlers(io, socket);
     }
 
     socket.on("disconnect", (reason) => {

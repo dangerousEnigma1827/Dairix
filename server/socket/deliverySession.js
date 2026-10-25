@@ -139,11 +139,89 @@ export const getAllActiveSessions = () => {
 };
 
 /**
+ * Returns a sanitized snapshot of currently active delivery sessions for authorized owners.
+ * Excludes internal socket identifiers and prunes sessions older than 24 hours.
+ *
+ * @returns {Array<Object>} List of active delivery sessions with sanitized fields
+ */
+export const getActiveSessionsSnapshot = () => {
+  const now = Date.now();
+  const sessions = [];
+
+  for (const session of activeSessions.values()) {
+    // Prune stale sessions started more than 24 hours ago
+    const startedTime = new Date(session.startedAt).getTime();
+    if (now - startedTime > 24 * 60 * 60 * 1000) {
+      stopSession(session.dmId);
+      continue;
+    }
+
+    sessions.push({
+      dmId: session.dmId,
+      name: session.name,
+      mobile: session.mobile,
+      startedAt: session.startedAt,
+      lastLocation: session.lastLocation
+        ? {
+            latitude: session.lastLocation.latitude,
+            longitude: session.lastLocation.longitude,
+            accuracy: session.lastLocation.accuracy,
+            heading: session.lastLocation.heading,
+            speed: session.lastLocation.speed,
+            updatedAt: session.lastLocation.updatedAt,
+          }
+        : null,
+    });
+  }
+
+  return sessions;
+};
+
+/**
  * Clears all active sessions (primarily for testing purposes).
  */
 export const clearAllSessions = () => {
   activeSessions.clear();
   socketToDm.clear();
+};
+
+/**
+ * Registers delivery tracking events for authenticated owners.
+ * Exposes live snapshot queries via callback with role-based authorization.
+ */
+export const registerOwnerDeliveryHandlers = (io, socket) => {
+  const user = socket.user;
+  if (user?.role !== "owner") return;
+
+  const handleActiveSessionsRequest = (callback) => {
+    if (typeof callback !== "function") return;
+
+    if (socket.user?.role !== "owner") {
+      return callback({
+        success: false,
+        message: "Access denied: Only authorized owners can view live delivery tracking",
+      });
+    }
+
+    try {
+      const sessions = getActiveSessionsSnapshot();
+      return callback({
+        success: true,
+        sessions,
+        timestamp: new Date().toISOString(),
+      });
+    } catch (err) {
+      console.error("[Owner Delivery Handler Error]:", err);
+      return callback({
+        success: false,
+        message: "Failed to fetch active delivery sessions snapshot",
+      });
+    }
+  };
+
+  // Primary event name and alias
+  socket.on("delivery:active-sessions:request", handleActiveSessionsRequest);
+  socket.on("delivery:owner:get-active-sessions", handleActiveSessionsRequest);
 };
 
 /**

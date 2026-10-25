@@ -18,6 +18,7 @@ import {
   ChevronRight,
   CalendarClock,
 } from "lucide-react";
+import LiveDeliveryMap from "../../components/Owner/LiveDeliveryMap";
 import {
   ResponsiveContainer,
   AreaChart,
@@ -356,6 +357,9 @@ export default function OwnerDashboard() {
             <ChevronRight size={16} className="text-amber-500 shrink-0" />
           </button>
         )}
+
+        {/* ── Live Delivery Tracking Map ── */}
+        <LiveDeliveryMap />
 
         {/* ── Main grid ── */}
         <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">

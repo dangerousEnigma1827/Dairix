@@ -92,3 +92,26 @@ export const getWeeklyStats = async (req, res) => {
     });
   }
 };
+
+import { getActiveSessionsSnapshot } from "../../socket/deliverySession.js";
+
+/**
+ * Controller to fetch initial snapshot of currently active delivery sessions.
+ * Restricted to authenticated owner accounts.
+ */
+export const getActiveDeliverySessions = async (req, res) => {
+  try {
+    const sessions = getActiveSessionsSnapshot();
+    return res.status(200).json({
+      success: true,
+      data: sessions,
+      timestamp: new Date().toISOString(),
+    });
+  } catch (err) {
+    console.error("Error fetching active delivery sessions:", err);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to fetch active delivery sessions",
+    });
+  }
+};
