@@ -5,9 +5,9 @@ import { updateDeliveryStatus } from "../../controllers/Dm/deliveryEntryControll
 
 const router = express.Router();
 
-router.use(authenticate, requireRole("dm", "owner"));
+router.use(authenticate);
 
-router.get("/today", getDmTodayDeliveries);
-router.post("/delivery/:customerId", updateDeliveryStatus);
+router.get("/today", requireRole("dm", "owner"), getDmTodayDeliveries);
+router.post("/delivery/:customerId", requireRole("dm"), updateDeliveryStatus);
 
 export default router;

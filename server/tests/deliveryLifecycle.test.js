@@ -1,5 +1,8 @@
 import 'dotenv/config';
 import mongoose from 'mongoose';
+import request from 'supertest';
+import jwt from 'jsonwebtoken';
+import app from '../app.js';
 import User from '../models/userModels.js';
 import Dispatch from '../models/dispatchModels.js';
 import DeliveryEntry from '../models/deliveryEntryModels.js';
@@ -432,4 +435,257 @@ describe('Delivery Lifecycle: Pending vs Skipped Business Rules', () => {
 
     await User.deleteOne({ _id: dashDm._id });
   });
+
+  // ── 12. Delivery Status Update Authorization & Lifecycle Regression Tests ──
+
+  describe('DM Delivery Status Update API Authorization & Lifecycle', () => {
+    let authDm;
+    let otherDm;
+    let authCustomer;
+    let otherCustomer;
+    let ownerUser;
+    let dmToken;
+    let otherDmToken;
+    let ownerToken;
+    let customerToken;
+    let todayDispatch;
+
+    beforeAll(async () => {
+      const todayIST = getKolkataDateString();
+      const todayDate = new Date(`${todayIST}T06:00:00.000+05:30`);
+
+      authDm = await User.create({
+        name: 'Auth Test DM',
+        mobile: `+91${Date.now().toString().slice(-10)}`,
+        password: 'Password@123',
+        role: 'dm',
+      });
+
+      otherDm = await User.create({
+        name: 'Other Test DM',
+        mobile: `+91${(Date.now() + 10).toString().slice(-10)}`,
+        password: 'Password@123',
+        role: 'dm',
+      });
+
+      authCustomer = await User.create({
+        name: 'Auth Test Customer',
+        mobile: `+91${(Date.now() + 20).toString().slice(-10)}`,
+        password: 'Password@123',
+        role: 'customer',
+        assignedDm: authDm._id,
+      });
+
+      otherCustomer = await User.create({
+        name: 'Other Test Customer',
+        mobile: `+91${(Date.now() + 30).toString().slice(-10)}`,
+        password: 'Password@123',
+        role: 'customer',
+        assignedDm: otherDm._id,
+      });
+
+      ownerUser = await User.create({
+        name: 'Auth Test Owner',
+        mobile: `+91${(Date.now() + 40).toString().slice(-10)}`,
+        password: 'Password@123',
+        role: 'owner',
+      });
+
+      dmToken = jwt.sign({ _id: authDm._id, role: authDm.role }, process.env.JWT_SECRET);
+      otherDmToken = jwt.sign({ _id: otherDm._id, role: otherDm.role }, process.env.JWT_SECRET);
+      ownerToken = jwt.sign({ _id: ownerUser._id, role: ownerUser.role }, process.env.JWT_SECRET);
+      customerToken = jwt.sign({ _id: authCustomer._id, role: authCustomer.role }, process.env.JWT_SECRET);
+
+      todayDispatch = await Dispatch.create({
+        date: todayDate,
+        deliveries: [{ dm: authDm._id, allocations: [], status: 'assigned' }],
+        status: 'created',
+      });
+    });
+
+    afterAll(async () => {
+      if (todayDispatch?._id) {
+        await Dispatch.deleteOne({ _id: todayDispatch._id });
+      }
+      await User.deleteMany({
+        _id: { $in: [authDm?._id, otherDm?._id, authCustomer?._id, otherCustomer?._id, ownerUser?._id].filter(Boolean) }
+      });
+    });
+
+    test('12. Authorized DM successfully marks an assigned pending delivery as delivered before cutoff', async () => {
+      const todayIST = getKolkataDateString();
+      const todayDate = new Date(`${todayIST}T06:00:00.000+05:30`);
+
+      const entry = await DeliveryEntry.create({
+        dispatch: todayDispatch._id,
+        customer: authCustomer._id,
+        dm: authDm._id,
+        products: [],
+        status: 'pending',
+        date: todayDate,
+        createdAt: todayDate,
+      });
+      createdEntryIds.push(entry._id);
+
+      const res = await request(app)
+        .post(`/api/deliveryEntry/delivery/${authCustomer._id}`)
+        .set('Cookie', [`token=${dmToken}`])
+        .send({ status: 'delivered' })
+        .expect(200);
+
+      expect(res.body.status).toBe('delivered');
+      expect(res.body.deliveredAt).toBeTruthy();
+
+      const updated = await DeliveryEntry.findById(entry._id);
+      expect(updated.status).toBe('delivered');
+      expect(updated.deliveredAt).toBeTruthy();
+    });
+
+    test('13. DM is unable to update another DM\'s delivery (returns 403 Forbidden)', async () => {
+      const todayIST = getKolkataDateString();
+      const todayDate = new Date(`${todayIST}T06:00:00.000+05:30`);
+
+      const entry = await DeliveryEntry.create({
+        dispatch: todayDispatch._id,
+        customer: otherCustomer._id,
+        dm: otherDm._id,
+        products: [],
+        status: 'pending',
+        date: todayDate,
+        createdAt: todayDate,
+      });
+      createdEntryIds.push(entry._id);
+
+      // authDm tries to deliver otherCustomer (assigned to otherDm)
+      const res = await request(app)
+        .post(`/api/deliveryEntry/delivery/${otherCustomer._id}`)
+        .set('Cookie', [`token=${dmToken}`])
+        .send({ status: 'delivered' })
+        .expect(403);
+
+      expect(res.body.message).toMatch(/not authorized to update another delivery person/i);
+
+      // Verify the record was NOT altered
+      const unmodified = await DeliveryEntry.findById(entry._id);
+      expect(unmodified.status).toBe('pending');
+      expect(unmodified.deliveredAt).toBeFalsy();
+    });
+
+    test('14. Owner is unable to use the DM-only delivery update endpoint (returns 403 Forbidden)', async () => {
+      const res = await request(app)
+        .post(`/api/deliveryEntry/delivery/${authCustomer._id}`)
+        .set('Cookie', [`token=${ownerToken}`])
+        .send({ status: 'delivered' })
+        .expect(403);
+
+      expect(res.body.message).toMatch(/Access denied/i);
+    });
+
+    test('15. Customer is unable to use the DM-only delivery update endpoint (returns 403 Forbidden)', async () => {
+      const res = await request(app)
+        .post(`/api/deliveryEntry/delivery/${authCustomer._id}`)
+        .set('Cookie', [`token=${customerToken}`])
+        .send({ status: 'delivered' })
+        .expect(403);
+
+      expect(res.body.message).toMatch(/Access denied/i);
+    });
+
+    test('16. Rejects invalid or unsupported status values with 400 Bad Request', async () => {
+      const res = await request(app)
+        .post(`/api/deliveryEntry/delivery/${authCustomer._id}`)
+        .set('Cookie', [`token=${dmToken}`])
+        .send({ status: 'completed' }) // schema uses 'delivered', 'completed' is invalid
+        .expect(400);
+
+      expect(res.body.message).toMatch(/invalid or unsupported status value/i);
+    });
+
+    test('17. Repeated requests on completed delivery do not corrupt deliveredAt (idempotency)', async () => {
+      const todayIST = getKolkataDateString();
+      const todayDate = new Date(`${todayIST}T06:00:00.000+05:30`);
+      const originalTime = new Date('2026-10-25T08:00:00.000Z');
+
+      const customer17 = await User.create({
+        name: 'Idempotency Test Customer',
+        mobile: `+91${(Date.now() + 50).toString().slice(-10)}`,
+        password: 'Password@123',
+        role: 'customer',
+        assignedDm: authDm._id,
+      });
+
+      const entry = await DeliveryEntry.create({
+        dispatch: todayDispatch._id,
+        customer: customer17._id,
+        dm: authDm._id,
+        products: [],
+        status: 'delivered',
+        deliveredAt: originalTime,
+        date: todayDate,
+        createdAt: todayDate,
+      });
+      createdEntryIds.push(entry._id);
+
+      // Repeat delivery request
+      const res = await request(app)
+        .post(`/api/deliveryEntry/delivery/${customer17._id}`)
+        .set('Cookie', [`token=${dmToken}`])
+        .send({ status: 'delivered' })
+        .expect(200);
+
+      expect(res.body.status).toBe('delivered');
+      expect(new Date(res.body.deliveredAt).toISOString()).toBe(originalTime.toISOString());
+
+      // Attempting to change completed delivery to skipped must fail with 400
+      const skipRes = await request(app)
+        .post(`/api/deliveryEntry/delivery/${customer17._id}`)
+        .set('Cookie', [`token=${dmToken}`])
+        .send({ status: 'skipped' })
+        .expect(400);
+
+      expect(skipRes.body.message).toMatch(/cannot mark a completed delivery as skipped/i);
+
+      await User.deleteOne({ _id: customer17._id });
+    });
+
+    test('18. Today\'s pending delivery cannot be prematurely marked skipped before cutoff', async () => {
+      const todayIST = getKolkataDateString();
+      const todayDate = new Date(`${todayIST}T06:00:00.000+05:30`);
+
+      const customer18 = await User.create({
+        name: 'Pending Cutoff Test Customer',
+        mobile: `+91${(Date.now() + 60).toString().slice(-10)}`,
+        password: 'Password@123',
+        role: 'customer',
+        assignedDm: authDm._id,
+      });
+
+      const entry = await DeliveryEntry.create({
+        dispatch: todayDispatch._id,
+        customer: customer18._id,
+        dm: authDm._id,
+        products: [],
+        status: 'pending',
+        date: todayDate,
+        createdAt: todayDate,
+      });
+      createdEntryIds.push(entry._id);
+
+      // Request skipped while delivery day is active
+      const res = await request(app)
+        .post(`/api/deliveryEntry/delivery/${customer18._id}`)
+        .set('Cookie', [`token=${dmToken}`])
+        .send({ status: 'skipped' })
+        .expect(200);
+
+      // Status must remain pending because the day cutoff has not ended in Asia/Kolkata
+      expect(res.body.status).toBe('pending');
+
+      const current = await DeliveryEntry.findById(entry._id);
+      expect(current.status).toBe('pending');
+
+      await User.deleteOne({ _id: customer18._id });
+    });
+  });
 });
+

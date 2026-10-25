@@ -16,6 +16,7 @@ import {
   Banknote,
   Smartphone,
   Wallet,
+  PackageCheck
 } from "lucide-react";
 
 // utils
@@ -26,6 +27,7 @@ import {
 } from "../../api/Services/Owner/DeliveryEntryServices";
 import { getCustomerDeliveryByIdService } from "../../api/Services/AuthServices";
 import { updateDeliveryEntryService } from "../../api/Services/Dm/DeliveryEntryServices";
+import { useUser } from "../../hooks/useUser";
 
 
 // ── Types — same DeliveryEntry shape used on the Dashboard ─────────────────
@@ -45,21 +47,21 @@ type DeliveryEntry = {
   };
 
   assignedDm?: {
-    _id:string;
-    name:string;
-    mobile:string;
+    _id: string;
+    name: string;
+    mobile: string;
   };
 
-  products:{
-    _id:string;
-    name:string;
-    price:number;
-    unit:string;
-    image?:string;
-    quantity:number;
+  products: {
+    _id: string;
+    name: string;
+    price: number;
+    unit: string;
+    image?: string;
+    quantity: number;
   }[];
 
-  qrCode:string;
+  qrCode: string;
 };
 
 type PageState =
@@ -92,88 +94,90 @@ function formatAddressLines(address?: DeliveryEntry["address"]): string[] {
 // ── Main Page ────────────────────────────────────────────────────────────────
 export default function DMScanDeliver() {
   const navigate = useNavigate();
+  const { user } = useUser();
   const videoRef = useRef<HTMLVideoElement>(null);
   const controlsRef = useRef<IScannerControls | null>(null);
 
-  const [pageState, setPageState]       = useState<PageState>("scanning");
+  const [pageState, setPageState] = useState<PageState>("scanning");
   const [errorMessage, setErrorMessage] = useState("");
-  const [entry, setEntry]               = useState<DeliveryEntry | null>(null);
+  const [entry, setEntry] = useState<DeliveryEntry | null>(null);
 
   // ── Camera lifecycle: only runs the scanner while pageState === "scanning" ──
   useEffect(() => {
-  // console.log("Scanner effect triggered. State:", pageState);
+    // console.log("Scanner effect triggered. State:", pageState);
 
-  if (pageState !== "scanning") {
-    console.log("Not scanning state, returning");
-    return;
-  }
+    if (pageState !== "scanning") {
+      console.log("Not scanning state, returning");
+      return;
+    }
 
-  if (!videoRef.current) {
-    console.log("Video ref missing");
-    return;
-  }
+    if (!videoRef.current) {
+      console.log("Video ref missing");
+      return;
+    }
 
-  let cancelled = false;
-  const codeReader = new BrowserQRCodeReader();
+    let cancelled = false;
+    const codeReader = new BrowserQRCodeReader();
 
-  codeReader
-    .decodeFromVideoDevice(
-      undefined,
-      videoRef.current,
-      (result, error, controls) => {
-        if(result && !cancelled){
-          console.log("QR FOUND:", result.getText());
-          cancelled = true;
-          controls.stop();
-          handleScan(result.getText());
+    codeReader
+      .decodeFromVideoDevice(
+        undefined,
+        videoRef.current,
+        (result, error, controls) => {
+          if (result && !cancelled) {
+            console.log("QR FOUND:", result.getText());
+            cancelled = true;
+            controls.stop();
+            handleScan(result.getText());
+          }
         }
-      }
-    )
-    .then((controls) => {
-      console.log("Camera started successfully");
-      controlsRef.current = controls;
-    })
-    .catch((err:any)=>{
-      console.log("Camera start failed:",err);
-      setErrorMessage(
-        err.message || "Camera error"
-      );
-      setPageState("error");
-    });
+      )
+      .then((controls) => {
+        console.log("Camera started successfully");
+        controlsRef.current = controls;
+      })
+      .catch((err: any) => {
+        console.log("Camera start failed:", err);
+        setErrorMessage(
+          err.message || "Camera error"
+        );
+        setPageState("error");
+      });
 
 
-    return ()=>{
+    return () => {
       console.log("Cleaning scanner");
 
-      cancelled=true;
+      cancelled = true;
 
       controlsRef.current?.stop();
     };
 
-  },[pageState]);
+  }, [pageState]);
 
   // ── QR scanned → resolve to today's DeliveryEntry for this customer + DM ───
-  const handleScan = async(customerId:string)=>{
-    console.log("HANDLE SCAN:",customerId);
+  const handleScan = async (customerId: string) => {
+    console.log("HANDLE SCAN:", customerId);
     setPageState("loading_customer");
-    try{
-        const res = await getCustomerDeliveryByIdService(customerId);
-        console.log("DELIVERY RESPONSE:",res);
-        if(!res){
-            setPageState("not_found");
-            return;
-        }
-        setEntry(res);
-        setPageState("found");
-    }catch(err){
-        console.log(
-          "FETCH DELIVERY ERROR:",
-          err
-        );
-        setErrorMessage(
-          "Couldn't fetch customer delivery"
-        );
-        setPageState("error");
+    try {
+      const res = await getCustomerDeliveryByIdService(customerId);
+      console.log("DELIVERY RESPONSE:", res);
+      if (!res) {
+        setPageState("not_found");
+        return;
+      }
+      setEntry(res);
+      setPageState("found");
+    } catch (err: any) {
+      console.log(
+        "FETCH DELIVERY ERROR:",
+        err
+      );
+      const serverMsg = err?.response?.data?.message;
+      setErrorMessage(
+        serverMsg || "Couldn't fetch customer delivery"
+      );
+      setPageState("error");
     }
   }
 
@@ -185,9 +189,16 @@ export default function DMScanDeliver() {
       console.log(entry._id)
       await updateDeliveryEntryService(entry._id, status)
       setPageState("success");
-    } catch (err) {
+    } catch (err: any) {
       console.error("Error updating delivery status:", err);
-      setErrorMessage("Couldn't update this delivery. Please try again.");
+      const serverMsg = err?.response?.data?.message;
+      if (err?.response?.status === 403) {
+        setErrorMessage(
+          serverMsg || "Access forbidden: You are not authorized to update this delivery."
+        );
+      } else {
+        setErrorMessage(serverMsg || "Couldn't update this delivery. Please try again.");
+      }
       setPageState("error");
     }
   };
@@ -205,8 +216,14 @@ export default function DMScanDeliver() {
     .map((p) => `${p.quantity}${p.unit} ${p.name}`)
     .join(", ");
 
+  const isAssignedToOther = Boolean(
+    entry?.assignedDm?._id &&
+    user?._id &&
+    entry.assignedDm._id.toString() !== user._id.toString()
+  );
+
   const isFoundScreen = pageState === "found" || pageState === "submitting";
-  const isSubmitting  = pageState === "submitting";
+  const isSubmitting = pageState === "submitting";
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col">
@@ -345,6 +362,17 @@ export default function DMScanDeliver() {
                 )}
               </div>
 
+              {isAssignedToOther && (
+                <div className="flex items-start gap-2.5 p-3.5 bg-amber-50 border border-amber-200 rounded-2xl text-amber-900 text-xs leading-relaxed">
+                  <AlertCircle size={16} className="text-amber-600 shrink-0 mt-0.5" />
+                  <div>
+                    <p className="font-semibold">Assigned to another delivery staff</p>
+                    <p className="text-amber-700 mt-0.5">
+                      This customer is assigned to {entry.assignedDm?.name || "another delivery partner"}. Only their assigned delivery staff member can record deliveries for this order.
+                    </p>
+                  </div>
+                </div>
+              )}
 
               {/* Products */}
               <div className="bg-white rounded-2xl ring-1 ring-slate-100 shadow-sm p-4 space-y-3">
@@ -402,39 +430,37 @@ export default function DMScanDeliver() {
               </div>
 
               {/* Actions */}
-              <div className="flex gap-3 pb-2">
+              <div className="flex flex-col gap-2 pb-2">
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => handleAction("skipped")}
+                    disabled={isSubmitting || isAssignedToOther}
+                    className="flex-1 py-3 border border-slate-200 rounded-xl text-sm font-semibold text-slate-600 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-50"
+                  >
+                    {isSubmitting
+                      ? <Loader2 size={15} className="animate-spin" />
+                      : <XCircle size={15} />
+                    }
+                    Skip
+                  </button>
 
-                <button
-                  onClick={() => handleAction("skipped")}
-                  disabled={isSubmitting}
-                  className="flex-1 py-3 border border-slate-200 rounded-xl text-sm font-semibold text-slate-600 flex items-center justify-center gap-2"
-                >
-
-                  {isSubmitting
-                    ? <Loader2 size={15} className="animate-spin"/>
-                    : <XCircle size={15}/>
-                  }
-
-                  Skip
-
-                </button>
-
-
-                <button
-                  onClick={() => handleAction("delivered")}
-                  disabled={isSubmitting}
-                  className="flex-[2] py-3 bg-emerald-600 text-white rounded-xl text-sm font-semibold flex items-center justify-center gap-2"
-                >
-
-                  {isSubmitting
-                    ? <Loader2 size={15} className="animate-spin"/>
-                    : <CheckCircle2 size={15}/>
-                  }
-
-                  Confirm Delivery
-
-                </button>
-
+                  <button
+                    onClick={() => handleAction("delivered")}
+                    disabled={isSubmitting || isAssignedToOther}
+                    className="flex-[2] py-3 bg-emerald-600 text-white rounded-xl text-sm font-semibold flex items-center justify-center gap-2 hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {isSubmitting
+                      ? <Loader2 size={15} className="animate-spin" />
+                      : <CheckCircle2 size={15} />
+                    }
+                    Confirm Delivery
+                  </button>
+                </div>
+                {isAssignedToOther && (
+                  <p className="text-center text-xs text-amber-600 font-medium">
+                    Delivery confirmation is disabled because you are not assigned to this customer.
+                  </p>
+                )}
               </div>
 
 
@@ -443,57 +469,57 @@ export default function DMScanDeliver() {
 
 
 
-        {/* ── Success ── */}
-        {pageState === "success" && entry && (
+          {/* ── Success ── */}
+          {pageState === "success" && entry && (
 
-          <div className="flex flex-col items-center justify-center py-20 gap-4 text-center">
+            <div className="flex flex-col items-center justify-center py-20 gap-4 text-center">
 
-            <div className="bg-emerald-50 p-4 rounded-full">
-              <CheckCircle2 size={36} className="text-emerald-500"/>
+              <div className="bg-emerald-50 p-4 rounded-full">
+                <CheckCircle2 size={36} className="text-emerald-500" />
+              </div>
+
+
+              <div>
+
+                <p className="text-lg font-bold text-slate-900">
+                  Delivery Recorded
+                </p>
+
+                <p className="text-sm text-slate-500 mt-1 max-w-xs">
+                  {productSummary} delivered to {entry.name}.
+                </p>
+
+              </div>
+
+
+              <div className="flex gap-3 mt-2">
+
+                <button
+                  onClick={resetToScan}
+                  className="px-4 py-2.5 bg-blue-600 text-white rounded-xl text-sm font-semibold flex items-center gap-1.5"
+                >
+
+                  <QrCode size={15} />
+                  Scan Next Customer
+
+                </button>
+
+
+                <button
+                  onClick={() => navigate("/dm")}
+                  className="px-4 py-2.5 border border-slate-200 rounded-xl text-sm font-semibold text-slate-600"
+                >
+                  Dashboard
+                </button>
+
+              </div>
+
+
             </div>
 
-
-            <div>
-
-              <p className="text-lg font-bold text-slate-900">
-                Delivery Recorded
-              </p>
-
-              <p className="text-sm text-slate-500 mt-1 max-w-xs">
-                {productSummary} delivered to {entry.name}.
-              </p>
-
-            </div>
+          )}
 
 
-            <div className="flex gap-3 mt-2">
-
-              <button
-                onClick={resetToScan}
-                className="px-4 py-2.5 bg-blue-600 text-white rounded-xl text-sm font-semibold flex items-center gap-1.5"
-              >
-
-                <QrCode size={15}/>
-                Scan Next Customer
-
-              </button>
-
-
-              <button
-                onClick={() => navigate("/dm")}
-                className="px-4 py-2.5 border border-slate-200 rounded-xl text-sm font-semibold text-slate-600"
-              >
-                Dashboard
-              </button>
-
-            </div>
-
-
-          </div>
-
-        )}
-        
-          
 
         </div>
       </main>
