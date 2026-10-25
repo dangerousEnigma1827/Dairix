@@ -1,5 +1,6 @@
 import User from "../../models/userModels.js"
 import DeliveryEntry from "../../models/deliveryEntryModels.js"
+import { getDeliveryDayRange } from "../../utils/deliveryDay.js"
 export const updateCustomerSubs = async (req, res) => {
     try{
         const {customerId} = req.params
@@ -23,29 +24,23 @@ export const updateCustomerSubs = async (req, res) => {
 export const getTodaysDeliveryStatus = async (req, res) => {
     try {
         const userId = req.user._id;
-
-        const startTime = new Date();
-        startTime.setHours(0, 0, 0, 0);
-
-        const endTime = new Date();
-        endTime.setHours(23, 59, 59, 999);
-
+        const { startOfDay, endOfDay } = getDeliveryDayRange();
 
         const delivery = await DeliveryEntry.findOne({
             customer: userId,
-            createdAt: {
-                $gte: startTime,
-                $lte: endTime
-            }
+            $or: [
+                { date: { $gte: startOfDay, $lte: endOfDay } },
+                { createdAt: { $gte: startOfDay, $lte: endOfDay } }
+            ]
         });
 
-
         if (!delivery) {
+            // While today's delivery day is in progress, an uncompleted delivery remains pending
             return res.status(200).json({
-                status: "skipped"
+                status: "pending",
+                deliveredAt: null
             });
         }
-
 
         return res.status(200).json({
             status: delivery.status,

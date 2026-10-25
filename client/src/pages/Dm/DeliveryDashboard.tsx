@@ -21,9 +21,9 @@ import {
   Wifi,
   WifiOff,
   Radio,
+  PackageCheck,
 } from "lucide-react";
 import { useDeliveryTracking } from "../../hooks/useDeliveryTracking";
-
 //utils
 //utils
 import { formatTime } from "../../utils/formatTime";
@@ -184,30 +184,28 @@ export default function DeliveryDashboard() {
   const { logout } = useUser();
 
   const handleLogout = async () => {
-      try {
-          setLogoutLoading(true);
-          if (isTracking) {
-            await stopDelivering();
-          }
-          await logout();
-          navigate("/login", { replace: true });
-      } catch(err) {
-          console.error("Logout failed", err);
-      } finally {
-          setLogoutLoading(false);
-          setLogoutOpen(false);
+    try {
+      setLogoutLoading(true);
+      if (isTracking) {
+        await stopDelivering();
       }
+      await logout();
+      navigate("/login", { replace: true });
+    } catch (err) {
+      console.error("Logout failed", err);
+    } finally {
+      setLogoutLoading(false);
+      setLogoutOpen(false);
+    }
   };
 
-  const total     = deliveries.length;
+  const total = deliveries.length;
   const delivered = deliveries?.filter((d) => d.status === "delivered").length;
-  const skipped   = deliveries?.filter((d) => d.status === "skipped").length;
-  const pending   = deliveries?.filter((d) => d.status === "pending").length;
-  const completed = delivered + skipped;
-
+  const skipped = deliveries?.filter((d) => d.status === "skipped").length;
+  const pending = deliveries?.filter((d) => d.status === "pending").length;
   const rate = total > 0
-  ? Math.round((completed / total) * 100)
-  : 0;
+    ? Math.round((delivered / total) * 100)
+    : 0;
 
   const recentDeliveries = [...deliveries]
     .filter((d) => d.status !== "pending")
@@ -217,7 +215,7 @@ export default function DeliveryDashboard() {
   const pendingDeliveries = deliveries?.filter((d) => d.status === "pending");
 
 
-    if (loading.dmLoading || !dm) {
+  if (loading.dmLoading || !dm) {
     return (
       <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center gap-4">
         <div className="bg-blue-600 p-3 rounded-2xl">
@@ -322,8 +320,8 @@ export default function DeliveryDashboard() {
             <div className="flex gap-3 mt-3">
               {[
                 { label: "Delivered", value: delivered, color: "text-emerald-500", dot: "bg-emerald-500" },
-                { label: "Skipped",   value: skipped,   color: "text-rose-500",    dot: "bg-rose-400" },
-                { label: "Pending",   value: pending,   color: "text-slate-500",   dot: "bg-slate-300" },
+                { label: "Skipped", value: skipped, color: "text-rose-500", dot: "bg-rose-400" },
+                { label: "Pending", value: pending, color: "text-slate-500", dot: "bg-slate-300" },
               ].map(({ label, value, color, dot }) => (
                 <div key={label} className="flex items-center gap-1.5">
                   <span className={`w-2 h-2 rounded-full ${dot}`} />
@@ -434,8 +432,8 @@ export default function DeliveryDashboard() {
                           {locationStatus === "tracking"
                             ? "Transmitting live GPS route"
                             : locationStatus === "unavailable"
-                            ? "Searching for GPS signal..."
-                            : "Connecting GPS..."}
+                              ? "Searching for GPS signal..."
+                              : "Connecting GPS..."}
                         </p>
                         {lastCoords ? (
                           <p className="text-[11px] text-slate-500 font-mono mt-0.5">
@@ -633,17 +631,16 @@ export default function DeliveryDashboard() {
               </div>
               <div className="space-y-2">
                 {recentDeliveries.map((d, idx) => {
-                  const cfg    = statusConfig[d.status];
-                  const Icon   = cfg.icon;
+                  const cfg = statusConfig[d.status];
+                  const Icon = cfg.icon;
                   return (
                     <div
                       key={d._id}
                       className="bg-white rounded-2xl ring-1 ring-slate-100 shadow-sm p-4 flex items-center gap-3"
                     >
                       <div
-                        className={`${avatarPalette[idx % avatarPalette.length]} rounded-full w-9 h-9 flex items-center justify-center text-xs font-bold shrink-0 ring-2 ${
-                          d.status === "delivered" ? "ring-emerald-100" : "ring-rose-100"
-                        }`}
+                        className={`${avatarPalette[idx % avatarPalette.length]} rounded-full w-9 h-9 flex items-center justify-center text-xs font-bold shrink-0 ring-2 ${d.status === "delivered" ? "ring-emerald-100" : "ring-rose-100"
+                          }`}
                       >
                         {getInitials(d.customer.name)}
                       </div>
@@ -689,12 +686,12 @@ export default function DeliveryDashboard() {
         </div>
       </main>
 
-       <LogoutModal
-          open={logoutOpen}
-          onClose={() => setLogoutOpen(false)}
-          onConfirm={handleLogout}
-          loading={logoutLoading}
-        />
+      <LogoutModal
+        open={logoutOpen}
+        onClose={() => setLogoutOpen(false)}
+        onConfirm={handleLogout}
+        loading={logoutLoading}
+      />
     </div>
   );
 }

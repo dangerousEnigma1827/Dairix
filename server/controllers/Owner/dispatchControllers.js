@@ -1,6 +1,7 @@
 import Dispatch from "../../models/dispatchModels.js";
 import User from "../../models/userModels.js";
 import DeliveryEntry from "../../models/deliveryEntryModels.js";
+import { getDeliveryDayRange } from "../../utils/deliveryDay.js";
 
 export const createDispatch = async(req,res)=>{
     try{
@@ -24,6 +25,7 @@ export const createDispatch = async(req,res)=>{
             for(const customer of customers){
                 await DeliveryEntry.create({
                     dispatch:dispatch._id,
+                    date:dispatch.date || dispatch.createdAt,
                     customer:customer._id,
                     dm:dmData.dmId,
                     products:customer.products.map((p)=>({
@@ -50,19 +52,13 @@ export const createDispatch = async(req,res)=>{
 
 export const getTodaysDispatch = async (req, res) => {
     try {
-
-        const start = new Date();
-        start.setHours(0,0,0,0);
-
-        const end = new Date();
-        end.setHours(23,59,59,999);
-
+        const { startOfDay, endOfDay } = getDeliveryDayRange();
 
         const dispatch = await Dispatch.findOne({
-            createdAt:{
-                $gte:start,
-                $lte:end
-            }
+            $or: [
+                { date: { $gte: startOfDay, $lte: endOfDay } },
+                { createdAt: { $gte: startOfDay, $lte: endOfDay } }
+            ]
         })
         .populate("deliveries.dm", "name mobile")
         .populate("deliveries.allocations.product", "name price unit");

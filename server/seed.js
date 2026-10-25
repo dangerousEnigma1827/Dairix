@@ -418,10 +418,8 @@ async function seed() {
         let deliveredAtTime = null;
 
         if (isToday) {
-          // Mix for today: 60% delivered, 30% pending, 10% skipped
-          if (cIdx % 10 === 0) {
-            status = "skipped";
-          } else if (cIdx % 3 === 0) {
+          // Today: uncompleted deliveries must remain pending while delivery day is in progress (never prematurely skipped!)
+          if (cIdx % 3 === 0) {
             status = "pending";
           } else {
             status = "delivered";
@@ -429,7 +427,7 @@ async function seed() {
             deliveredAtTime.setHours(6 + (cIdx % 2), 15 + (cIdx * 3) % 45, 0, 0);
           }
         } else {
-          // Past days: 88% delivered, 12% skipped
+          // Past days: uncompleted deliveries after cutoff are skipped
           if (cIdx % 8 === 0) {
             status = "skipped";
           } else {
@@ -449,6 +447,7 @@ async function seed() {
 
         const entry = new DeliveryEntry({
           dispatch: dispatch._id,
+          date: entryTimestamp,
           customer: customer._id,
           dm: customer.assignedDm,
           products: entryProducts,

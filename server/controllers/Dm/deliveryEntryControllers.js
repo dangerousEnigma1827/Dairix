@@ -1,53 +1,61 @@
 import Dispatch from "../../models/dispatchModels.js";
 import DeliveryEntry from "../../models/deliveryEntryModels.js";
+import { getDeliveryDayRange, isDeliveryDayEnded } from "../../utils/deliveryDay.js";
 
 export const updateDeliveryStatus = async(req,res)=>{
     try {
         const {customerId}=req.params;
         const dmId=req.user._id;
 
+        const { startOfDay, endOfDay } = getDeliveryDayRange();
 
-        const startOfDay = new Date();
-        startOfDay.setHours(0,0,0,0);
+        const dispatches = await Dispatch.find({
+            $or: [
+                { date: { $gte: startOfDay, $lte: endOfDay } },
+                { createdAt: { $gte: startOfDay, $lte: endOfDay } }
+            ]
+        }).select("_id");
 
-        const endOfDay = new Date();
-        endOfDay.setHours(23,59,59,999);
+        const dispatchIds = dispatches.map(d => d._id);
 
-        const dispatch = await Dispatch.findOne({
-            date:{
-                $gte:startOfDay,
-                $lte:endOfDay
-            }
+        const entry = await DeliveryEntry.findOne({
+            customer: customerId,
+            dm: dmId,
+            $or: [
+                { dispatch: { $in: dispatchIds } },
+                { date: { $gte: startOfDay, $lte: endOfDay } }
+            ]
         });
-
-
-        if(!dispatch){
-            return res.status(404).json({
-                message:"No dispatch today"
-            });
-        }
-
-        console.log(req.body)
-        const entry = await DeliveryEntry.findOneAndUpdate(
-            {
-                dispatch:dispatch._id,
-                customer:customerId,
-                dm:dmId
-            },
-            {
-                status:req.body.status,
-                deliveredAt:new Date()
-            },
-            {
-                new:true
-            }
-        );
 
         if(!entry){
             return res.status(404).json({
                 message:"Delivery entry not found"
             });
         }
+
+        const requestedStatus = req.body.status;
+        let finalStatus = "pending";
+        let deliveredAtTime = null;
+
+        if (requestedStatus === "delivered") {
+            finalStatus = "delivered";
+            deliveredAtTime = new Date();
+        } else if (requestedStatus === "skipped") {
+            // Cutoff rule: uncompleted deliveries can only be skipped after the delivery day cutoff has passed
+            const dayEnded = isDeliveryDayEnded(entry.date || entry.createdAt);
+            if (dayEnded) {
+                finalStatus = "skipped";
+            } else {
+                // While delivery day is in progress, uncompleted stops remain pending
+                finalStatus = "pending";
+            }
+        }
+
+        entry.status = finalStatus;
+        if (deliveredAtTime) {
+            entry.deliveredAt = deliveredAtTime;
+        }
+        await entry.save();
 
 
         res.json(entry);

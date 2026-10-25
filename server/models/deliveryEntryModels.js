@@ -10,6 +10,12 @@ const deliveryEntrySchema = new mongoose.Schema(
         required:true
     },
 
+    date:{
+        type:Date,
+        default:Date.now,
+        index:true
+    },
+
 
     customer:{
         type:mongoose.Schema.Types.ObjectId,

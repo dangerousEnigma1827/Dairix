@@ -1,5 +1,6 @@
 import Dispatch from "../models/dispatchModels.js";
 import DeliveryEntry from "../models/deliveryEntryModels.js";
+import { getDeliveryDayRange } from "../utils/deliveryDay.js";
 
 // In-memory store of active delivery sessions: Map<dmId, SessionData>
 const activeSessions = new Map();
@@ -13,17 +14,13 @@ const socketToDm = new Map();
  * @returns {Promise<number>} Number of eligible pending delivery orders today
  */
 export const checkPendingDeliveries = async (dmId) => {
-  const start = new Date();
-  start.setHours(0, 0, 0, 0);
+  const { startOfDay, endOfDay } = getDeliveryDayRange();
 
-  const end = new Date();
-  end.setHours(23, 59, 59, 999);
-
-  // Look for today's dispatch by createdAt or date
+  // Look for today's dispatch by createdAt or date in Asia/Kolkata
   const dispatch = await Dispatch.findOne({
     $or: [
-      { createdAt: { $gte: start, $lte: end } },
-      { date: { $gte: start, $lte: end } },
+      { createdAt: { $gte: startOfDay, $lte: endOfDay } },
+      { date: { $gte: startOfDay, $lte: endOfDay } },
     ],
   });
 
@@ -41,7 +38,10 @@ export const checkPendingDeliveries = async (dmId) => {
     pendingCount = await DeliveryEntry.countDocuments({
       dm: dmId,
       status: "pending",
-      createdAt: { $gte: start, $lte: end },
+      $or: [
+        { date: { $gte: startOfDay, $lte: endOfDay } },
+        { createdAt: { $gte: startOfDay, $lte: endOfDay } },
+      ],
     });
   }
 
