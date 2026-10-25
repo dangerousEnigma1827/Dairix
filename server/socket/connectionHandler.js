@@ -1,6 +1,11 @@
+import {
+  registerDeliverySessionHandlers,
+  handleDisconnect as handleSessionDisconnect,
+} from "./deliverySession.js";
+
 /**
- * Registers basic connection and disconnection event handlers for Socket.IO.
- * Sets up development logging and role/user room isolation for future tracking phases.
+ * Registers connection and disconnection event handlers for Socket.IO.
+ * Sets up room isolation, delivery session handling, and development logging.
  */
 export const registerConnectionHandlers = (io) => {
   io.on("connection", (socket) => {
@@ -16,10 +21,29 @@ export const registerConnectionHandlers = (io) => {
       socket.join(`role:${user.role}`);
     }
 
+    // Register delivery session events for delivery personnel
+    if (user?.role === "dm") {
+      registerDeliverySessionHandlers(io, socket);
+    }
+
     socket.on("disconnect", (reason) => {
       console.log(
         `[Socket.IO] Client disconnected: socketId=${socket.id}, userId=${user?._id}, reason=${reason}`
       );
+
+      // If DM was actively sharing live location, terminate session and notify owners
+      const terminatedSession = handleSessionDisconnect(socket.id);
+      if (terminatedSession) {
+        io.to("role:owner").emit("delivery:dm:inactive", {
+          dmId: terminatedSession.dmId,
+          name: terminatedSession.name,
+          stoppedAt: new Date().toISOString(),
+          reason: "disconnected",
+        });
+        console.log(
+          `[Delivery Session] Active session terminated on disconnect for DM: ${terminatedSession.name}`
+        );
+      }
     });
 
     socket.on("error", (err) => {

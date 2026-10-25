@@ -14,10 +14,15 @@ import {
   TrendingUp,
   MapPin,
   Phone,
-  PackageCheck,
   AlertCircle,
   Loader2,
+  Navigation,
+  Square,
+  Wifi,
+  WifiOff,
+  Radio,
 } from "lucide-react";
+import { useDeliveryTracking } from "../../hooks/useDeliveryTracking";
 
 //utils
 //utils
@@ -132,6 +137,19 @@ export default function DeliveryDashboard() {
   const [logoutOpen, setLogoutOpen] = useState(false);
   const [logoutLoading, setLogoutLoading] = useState(false);
 
+  const {
+    isTracking,
+    isStarting,
+    isStopping,
+    locationStatus,
+    locationError,
+    lastCoords,
+    lastUpdated,
+    socketConnected,
+    startDelivering,
+    stopDelivering,
+  } = useDeliveryTracking();
+
 
   const handleGetDm = async () => {
     setLoading((prev) => ({ ...prev, dmLoading: true }));
@@ -168,6 +186,9 @@ export default function DeliveryDashboard() {
   const handleLogout = async () => {
       try {
           setLogoutLoading(true);
+          if (isTracking) {
+            await stopDelivering();
+          }
           await logout();
           navigate("/login", { replace: true });
       } catch(err) {
@@ -312,6 +333,157 @@ export default function DeliveryDashboard() {
               ))}
             </div>
           </div>
+
+          {/* ── Start / Stop Delivering Session Banner ── */}
+          {loading.deliveriesLoading ? (
+            <div className="h-24 bg-white/60 animate-pulse rounded-2xl ring-1 ring-slate-100" />
+          ) : (pendingDeliveries.length > 0 || isTracking) ? (
+            <div className="space-y-2">
+              {!isTracking ? (
+                /* Inactive State: Prominent Start Delivering Button */
+                <div className="bg-white rounded-2xl ring-1 ring-slate-100 shadow-sm p-4 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
+                        <Navigation size={18} />
+                      </div>
+                      <div>
+                        <p className="font-bold text-slate-900 text-sm">Delivery Session</p>
+                        <p className="text-xs text-slate-500 mt-0.5">
+                          {pendingDeliveries.length} order{pendingDeliveries.length > 1 ? "s" : ""} pending delivery
+                        </p>
+                      </div>
+                    </div>
+                    <span className="text-[11px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200/60 px-2.5 py-1 rounded-full">
+                      Ready to start
+                    </span>
+                  </div>
+
+                  {locationStatus === "denied" && (
+                    <div className="bg-rose-50 border border-rose-200 rounded-xl p-3 flex items-start gap-2.5 text-xs text-rose-800">
+                      <AlertCircle size={16} className="text-rose-500 shrink-0 mt-0.5" />
+                      <div className="flex-1 space-y-1">
+                        <p className="font-semibold">Location Permission Denied</p>
+                        <p className="text-rose-700 leading-relaxed">
+                          {locationError || "Please allow location access in your browser to share your delivery route."}
+                        </p>
+                      </div>
+                    </div>
+                  )}
+
+                  {locationError && locationStatus !== "denied" && (
+                    <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 flex items-start gap-2 text-xs text-amber-800">
+                      <AlertCircle size={16} className="text-amber-500 shrink-0 mt-0.5" />
+                      <p className="flex-1">{locationError}</p>
+                    </div>
+                  )}
+
+                  <button
+                    onClick={() => startDelivering(pendingDeliveries.length)}
+                    disabled={isStarting}
+                    className="w-full bg-emerald-600 hover:bg-emerald-700 active:scale-[0.98] text-white font-semibold py-3 px-4 rounded-xl shadow-sm shadow-emerald-200 flex items-center justify-center gap-2 transition-all disabled:opacity-75 disabled:cursor-not-allowed cursor-pointer"
+                  >
+                    {isStarting ? (
+                      <>
+                        <Loader2 size={18} className="animate-spin" />
+                        <span>Requesting GPS & Starting...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Navigation size={18} />
+                        <span>{locationStatus === "denied" ? "Retry & Start Delivering" : "Start Delivering"}</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              ) : (
+                /* Active State: Stop Delivering & Live Tracking Status */
+                <div className="bg-white rounded-2xl ring-2 ring-emerald-500/30 shadow-sm p-4 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <span className="relative flex h-3 w-3">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                        <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
+                      </span>
+                      <p className="text-xs font-bold text-emerald-800 uppercase tracking-wide flex items-center gap-1.5">
+                        <Radio size={14} className="text-emerald-600 animate-pulse" />
+                        Live Delivery Active
+                      </p>
+                    </div>
+
+                    <div className="flex items-center gap-1.5">
+                      {socketConnected ? (
+                        <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200/60">
+                          <Wifi size={12} /> Connected
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-amber-700 bg-amber-50 px-2.5 py-0.5 rounded-full border border-amber-200/60 animate-pulse">
+                          <WifiOff size={12} /> Reconnecting...
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="bg-slate-50 rounded-xl p-3 flex items-center justify-between text-xs ring-1 ring-slate-100">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-8 h-8 rounded-lg bg-emerald-100/60 text-emerald-700 flex items-center justify-center shrink-0">
+                        <MapPin size={16} />
+                      </div>
+                      <div>
+                        <p className="font-semibold text-slate-800">
+                          {locationStatus === "tracking"
+                            ? "Transmitting live GPS route"
+                            : locationStatus === "unavailable"
+                            ? "Searching for GPS signal..."
+                            : "Connecting GPS..."}
+                        </p>
+                        {lastCoords ? (
+                          <p className="text-[11px] text-slate-500 font-mono mt-0.5">
+                            {lastCoords.latitude.toFixed(4)}, {lastCoords.longitude.toFixed(4)}
+                            {lastCoords.accuracy && ` · ±${Math.round(lastCoords.accuracy)}m`}
+                          </p>
+                        ) : (
+                          <p className="text-[11px] text-slate-400 mt-0.5">
+                            Acquiring initial location fix...
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                    {lastUpdated && (
+                      <span className="text-[11px] text-slate-400 font-medium shrink-0">
+                        {formatTime(lastUpdated.toISOString())}
+                      </span>
+                    )}
+                  </div>
+
+                  {locationError && locationStatus !== "tracking" && (
+                    <div className="bg-amber-50 border border-amber-200 rounded-xl p-2.5 flex items-center gap-2 text-xs text-amber-800">
+                      <AlertCircle size={14} className="text-amber-500 shrink-0" />
+                      <p className="text-[11px] flex-1">{locationError}</p>
+                    </div>
+                  )}
+
+                  <button
+                    onClick={stopDelivering}
+                    disabled={isStopping}
+                    className="w-full bg-rose-600 hover:bg-rose-700 active:scale-[0.98] text-white font-semibold py-2.5 px-4 rounded-xl shadow-sm shadow-rose-200 flex items-center justify-center gap-2 transition-all disabled:opacity-75 disabled:cursor-not-allowed cursor-pointer"
+                  >
+                    {isStopping ? (
+                      <>
+                        <Loader2 size={16} className="animate-spin" />
+                        <span>Ending Session...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Square size={16} />
+                        <span>Stop Delivering</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              )}
+            </div>
+          ) : null}
 
           {/* ── Quick actions ── */}
           <div className="grid grid-cols-2 gap-3">
