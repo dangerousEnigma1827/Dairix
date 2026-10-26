@@ -313,7 +313,7 @@ describe('Socket.IO Integration & Delivery Session Workflow', () => {
 
   // ── 4. Live GPS Updates & Privacy Scoping Tests ───────────────────────────
 
-  test('9. Location update is validated and broadcasted strictly to role:owner', (done) => {
+  test('9. Location update is validated and broadcasted strictly to role:owner', async () => {
     const ownerSocket = Client(`http://localhost:${serverPort}`, {
       auth: { token: ownerToken },
       transports: ['websocket'],
@@ -329,52 +329,62 @@ describe('Socket.IO Integration & Delivery Session Workflow', () => {
       transports: ['websocket'],
     });
 
+    const waitForConnect = (sock) =>
+      new Promise((res) => (sock.connected ? res() : sock.on('connect', res)));
+
+    await Promise.all([
+      waitForConnect(ownerSocket),
+      waitForConnect(dmSocket),
+      waitForConnect(customerSocket),
+    ]);
+
     let customerReceived = false;
     customerSocket.on('delivery:location:broadcast', () => {
       customerReceived = true;
     });
 
-    ownerSocket.on('connect', () => {
-      dmSocket.on('connect', () => {
-        // Step 1: DM starts session
-        dmSocket.emit('delivery:session:start', (startRes) => {
-          expect(startRes.success).toBe(true);
-
-          // Step 2: Set up owner listener for broadcast
-          ownerSocket.on('delivery:location:broadcast', (payload) => {
-            try {
-              expect(payload.dmId).toBe(testDm._id.toString());
-              expect(payload.coords.latitude).toBe(12.9716);
-              expect(payload.coords.longitude).toBe(77.5946);
-              expect(payload.coords.accuracy).toBe(10);
-              expect(payload.timestamp).toBeDefined();
-
-              // Verify customer did NOT receive the private broadcast
-              expect(customerReceived).toBe(false);
-
-              ownerSocket.disconnect();
-              dmSocket.disconnect();
-              customerSocket.disconnect();
-              done();
-            } catch (err) {
-              ownerSocket.disconnect();
-              dmSocket.disconnect();
-              customerSocket.disconnect();
-              done(err);
-            }
-          });
-
-          // Step 3: DM transmits valid location
-          dmSocket.emit(
-            'delivery:location:update',
-            { latitude: 12.9716, longitude: 77.5946, accuracy: 10 },
-            (updateRes) => {
-              expect(updateRes.success).toBe(true);
-            }
-          );
-        });
+    // Step 1: DM starts session
+    await new Promise((resolve) => {
+      dmSocket.emit('delivery:session:start', (startRes) => {
+        expect(startRes.success).toBe(true);
+        resolve();
       });
     });
+
+    // Step 2: Set up broadcast listener
+    const broadcastPromise = new Promise((resolve, reject) => {
+      ownerSocket.on('delivery:location:broadcast', (payload) => {
+        try {
+          expect(payload.dmId).toBe(testDm._id.toString());
+          expect(payload.coords.latitude).toBe(12.9716);
+          expect(payload.coords.longitude).toBe(77.5946);
+          expect(payload.coords.accuracy).toBe(10);
+          expect(payload.timestamp).toBeDefined();
+          expect(customerReceived).toBe(false);
+          resolve();
+        } catch (err) {
+          reject(err);
+        }
+      });
+    });
+
+    // Step 3: DM transmits valid location
+    await new Promise((resolve) => {
+      dmSocket.emit(
+        'delivery:location:update',
+        { latitude: 12.9716, longitude: 77.5946, accuracy: 10 },
+        (updateRes) => {
+          expect(updateRes.success).toBe(true);
+          resolve();
+        }
+      );
+    });
+
+    await broadcastPromise;
+
+    ownerSocket.disconnect();
+    dmSocket.disconnect();
+    customerSocket.disconnect();
   });
 
   test('10. Invalid coordinates are rejected with descriptive error', (done) => {
