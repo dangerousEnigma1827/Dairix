@@ -4,6 +4,8 @@ export type AddressType = {
     landmark: string;
     city: string;
     pincode: string;
+    latitude?: number | null;
+    longitude?: number | null;
 };
 
 export type ProductType = {

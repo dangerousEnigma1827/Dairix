@@ -16,6 +16,10 @@ import {
   ChevronRight,
   Droplets,
   AlertCircle,
+  Crosshair,
+  Loader2,
+  Check,
+  X,
 } from "lucide-react";
 import { currUserService } from "../../api/Services/AuthServices";
 import { useEffect, useState } from "react";
@@ -26,8 +30,10 @@ import {
   getTodaysCustomerDeliveryStatus, 
   getWeeklyDeliveryTrack,
   getMonthlyDeliveryTrack,
+  updateCustomerLocationService,
   type MonthlyDeliveryEntry
 } from "../../api/Services/Customer/CustomerServices";
+import toast from "react-hot-toast";
 import LogoutModal from "../LogoutModal";
 import { useUser } from "../../hooks/useUser";
 import { getSocket } from "../../api/socket";
@@ -182,7 +188,130 @@ export default function CustomerDashboard() {
     statusLoading:false
   })
 
-  const [customer, setCustomer]=useState<CustomerType|null>(null)
+  const [customer, setCustomer]=useState<CustomerType|null>(null);
+
+  const [locationModalOpen, setLocationModalOpen] = useState(false);
+  const [locDetecting, setLocDetecting] = useState(false);
+  const [locSaving, setLocSaving] = useState(false);
+  const [detectedCoords, setDetectedCoords] = useState<{
+    latitude: number;
+    longitude: number;
+    accuracy?: number;
+  } | null>(null);
+  const [locError, setLocError] = useState<string | null>(null);
+  const [editAddress, setEditAddress] = useState({
+    houseNo: "",
+    street: "",
+    landmark: "",
+    city: "",
+    pincode: "",
+  });
+
+  const openLocationModal = () => {
+    if (customer?.address) {
+      setEditAddress({
+        houseNo: customer.address.houseNo || "",
+        street: customer.address.street || "",
+        landmark: customer.address.landmark || "",
+        city: customer.address.city || "",
+        pincode: customer.address.pincode || "",
+      });
+      if (customer.address.latitude && customer.address.longitude) {
+        setDetectedCoords({
+          latitude: customer.address.latitude,
+          longitude: customer.address.longitude,
+        });
+      } else {
+        setDetectedCoords(null);
+      }
+    }
+    setLocError(null);
+    setLocationModalOpen(true);
+  };
+
+  const handleDetectLocation = () => {
+    if (!navigator.geolocation) {
+      const msg = "Geolocation is not supported by your browser.";
+      setLocError(msg);
+      toast(msg, { style: { background: "#DC2626", color: "#fff" } });
+      return;
+    }
+
+    setLocDetecting(true);
+    setLocError(null);
+
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const lat = Number(pos.coords.latitude.toFixed(6));
+        const lng = Number(pos.coords.longitude.toFixed(6));
+        const acc = Math.round(pos.coords.accuracy);
+
+        setDetectedCoords({
+          latitude: lat,
+          longitude: lng,
+          accuracy: acc,
+        });
+        setLocDetecting(false);
+        toast(`GPS Location captured (accuracy ±${acc}m)`, {
+          style: { background: "#10B981", color: "#fff" },
+        });
+      },
+      (err) => {
+        setLocDetecting(false);
+        let message = "Unable to retrieve your location.";
+        if (err.code === 1) {
+          message = "Location permission denied. Please allow location access in your browser.";
+        } else if (err.code === 2) {
+          message = "Location unavailable. Please check your device GPS.";
+        } else if (err.code === 3) {
+          message = "Location request timed out. Please try again.";
+        }
+        setLocError(message);
+        toast(message, { style: { background: "#DC2626", color: "#fff" } });
+      },
+      { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
+    );
+  };
+
+  const handleSaveLocation = async () => {
+    if (!detectedCoords) {
+      toast("Please detect GPS coordinates first", {
+        style: { background: "#DC2626", color: "#fff" },
+      });
+      return;
+    }
+
+    setLocSaving(true);
+    try {
+      const res = await updateCustomerLocationService({
+        latitude: detectedCoords.latitude,
+        longitude: detectedCoords.longitude,
+        address: editAddress,
+      });
+
+      if (res.success && customer) {
+        setCustomer({
+          ...customer,
+          address: {
+            ...customer.address,
+            ...res.data.address,
+            latitude: detectedCoords.latitude,
+            longitude: detectedCoords.longitude,
+          },
+        });
+        toast("Delivery location updated successfully!", {
+          style: { background: "#10B981", color: "#fff" },
+        });
+        setLocationModalOpen(false);
+      }
+    } catch (err: any) {
+      console.error("Failed to update location:", err);
+      const msg = err?.response?.data?.message || "Failed to save delivery location";
+      toast(msg, { style: { background: "#DC2626", color: "#fff" } });
+    } finally {
+      setLocSaving(false);
+    }
+  };
 
   const handleGetCurrentUser = async () =>{
     setLoading((prev)=>{
@@ -392,6 +521,132 @@ export default function CustomerDashboard() {
         loading={logoutLoading}
       />
 
+      {/* Location Pin & Address Modal */}
+      {locationModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <div className="bg-blue-100 text-blue-600 p-2 rounded-xl">
+                  <Crosshair size={20} />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-slate-900">Delivery GPS Pin</h3>
+                  <p className="text-xs text-slate-500">Ensure delivery partner arrives at your exact doorstep</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setLocationModalOpen(false)}
+                className="text-slate-400 hover:text-slate-600 p-1 rounded-lg"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {/* Geolocation Detector Button */}
+            <div className="bg-blue-50/70 border border-blue-100 rounded-2xl p-4 space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-semibold text-slate-700">Device Location Access</span>
+                <button
+                  type="button"
+                  onClick={handleDetectLocation}
+                  disabled={locDetecting}
+                  className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white bg-blue-600 rounded-xl hover:bg-blue-700 disabled:opacity-50 transition shadow-sm"
+                >
+                  {locDetecting ? (
+                    <>
+                      <Loader2 size={13} className="animate-spin" />
+                      Detecting...
+                    </>
+                  ) : (
+                    <>
+                      <Crosshair size={13} />
+                      Detect GPS Location
+                    </>
+                  )}
+                </button>
+              </div>
+
+              {detectedCoords ? (
+                <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-3 text-xs text-emerald-800 space-y-1">
+                  <div className="flex items-center justify-between">
+                    <span className="font-semibold flex items-center gap-1 text-emerald-700">
+                      <Check size={14} /> Coordinates Captured
+                    </span>
+                    {detectedCoords.accuracy && (
+                      <span className="text-[11px] text-emerald-600">±{detectedCoords.accuracy}m accuracy</span>
+                    )}
+                  </div>
+                  <p className="font-mono text-[12px] text-emerald-900">
+                    Lat: {detectedCoords.latitude.toFixed(6)} | Lng: {detectedCoords.longitude.toFixed(6)}
+                  </p>
+                </div>
+              ) : locError ? (
+                <div className="bg-rose-50 border border-rose-200 rounded-xl p-3 text-xs text-rose-700 flex items-start gap-2">
+                  <AlertCircle size={14} className="shrink-0 mt-0.5 text-rose-500" />
+                  <span>{locError}</span>
+                </div>
+              ) : (
+                <p className="text-[11px] text-slate-500">
+                  Click "Detect GPS Location" while at your delivery address to save your exact GPS coordinates.
+                </p>
+              )}
+            </div>
+
+            {/* Address Details (Optional edits) */}
+            <div className="space-y-2.5">
+              <p className="text-xs font-semibold text-slate-700">Address Details</p>
+              <div className="grid grid-cols-2 gap-2">
+                <input
+                  placeholder="House / Flat No"
+                  value={editAddress.houseNo}
+                  onChange={(e) => setEditAddress({ ...editAddress, houseNo: e.target.value })}
+                  className="border border-slate-200 rounded-xl px-3 py-2 text-xs outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-200"
+                />
+                <input
+                  placeholder="Street / Area"
+                  value={editAddress.street}
+                  onChange={(e) => setEditAddress({ ...editAddress, street: e.target.value })}
+                  className="border border-slate-200 rounded-xl px-3 py-2 text-xs outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-200"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <input
+                  placeholder="City"
+                  value={editAddress.city}
+                  onChange={(e) => setEditAddress({ ...editAddress, city: e.target.value })}
+                  className="border border-slate-200 rounded-xl px-3 py-2 text-xs outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-200"
+                />
+                <input
+                  placeholder="Pincode"
+                  value={editAddress.pincode}
+                  onChange={(e) => setEditAddress({ ...editAddress, pincode: e.target.value })}
+                  className="border border-slate-200 rounded-xl px-3 py-2 text-xs outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-200"
+                />
+              </div>
+            </div>
+
+            <div className="flex gap-2 pt-2">
+              <button
+                type="button"
+                onClick={() => setLocationModalOpen(false)}
+                className="flex-1 py-2.5 rounded-xl border border-slate-200 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleSaveLocation}
+                disabled={locSaving || !detectedCoords}
+                className="flex-1 py-2.5 rounded-xl bg-blue-600 text-xs font-semibold text-white hover:bg-blue-700 disabled:opacity-50 transition flex items-center justify-center gap-1.5 shadow-sm"
+              >
+                {locSaving ? <Loader2 size={14} className="animate-spin" /> : "Save Delivery Pin"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* ── Top bar ── */}
       <header className="sticky top-0 z-40 bg-white border-b border-slate-100 shadow-sm">
         <div className="max-w-lg mx-auto px-4 h-14 flex items-center justify-between">
@@ -443,6 +698,51 @@ export default function CustomerDashboard() {
                   customer.address?.city,
                 ].filter(Boolean).join(", ") || "No address provided"}
               </span>
+            </div>
+          </div>
+
+          {/* Delivery Destination & GPS Pin Card */}
+          <div className="bg-white rounded-2xl shadow-sm ring-1 ring-slate-100 p-4">
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex items-start gap-3">
+                <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${
+                  customer.address?.latitude && customer.address?.longitude
+                    ? "bg-emerald-50 text-emerald-600"
+                    : "bg-amber-50 text-amber-600"
+                }`}>
+                  <MapPin size={20} />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <p className="font-semibold text-slate-900 text-sm">Delivery Destination</p>
+                    {customer.address?.latitude && customer.address?.longitude ? (
+                      <span className="inline-flex items-center gap-1 text-[11px] font-medium bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-full">
+                        <Check size={11} /> GPS Pinned
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1 text-[11px] font-medium bg-amber-100 text-amber-800 px-2 py-0.5 rounded-full">
+                        <AlertCircle size={11} /> Pin Needed
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-xs text-slate-500 mt-0.5">
+                    {[customer.address?.houseNo, customer.address?.street, customer.address?.city]
+                      .filter(Boolean)
+                      .join(", ") || "No address entered"}
+                  </p>
+                  {customer.address?.latitude && customer.address?.longitude && (
+                    <p className="text-[11px] font-mono text-slate-400 mt-1">
+                      {customer.address.latitude.toFixed(4)}° N, {customer.address.longitude.toFixed(4)}° E
+                    </p>
+                  )}
+                </div>
+              </div>
+              <button
+                onClick={openLocationModal}
+                className="text-xs font-semibold px-3 py-1.5 rounded-xl bg-blue-50 text-blue-600 hover:bg-blue-100 transition-colors shrink-0"
+              >
+                {customer.address?.latitude && customer.address?.longitude ? "Edit Pin" : "Set GPS Pin"}
+              </button>
             </div>
           </div>
 

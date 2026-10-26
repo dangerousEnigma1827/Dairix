@@ -39,4 +39,47 @@ export const getWeeklyDeliveryTrack = async (
   console.log(data)
   return data;
 };
+
+export interface UpdateLocationPayload {
+  latitude: number;
+  longitude: number;
+  address?: {
+    houseNo?: string;
+    street?: string;
+    landmark?: string;
+    city?: string;
+    pincode?: string;
+  };
+}
+
+export interface UpdateLocationResponse {
+  success: boolean;
+  message: string;
+  data: {
+    address: {
+      houseNo?: string;
+      street?: string;
+      landmark?: string;
+      city?: string;
+      pincode?: string;
+      latitude?: number;
+      longitude?: number;
+    };
+    location: {
+      latitude: number;
+      longitude: number;
+    };
+    coordinates: {
+      latitude: number;
+      longitude: number;
+    };
+  };
+}
+
+export const updateCustomerLocationService = async (
+  payload: UpdateLocationPayload
+): Promise<UpdateLocationResponse> => {
+  const { data } = await api.put<UpdateLocationResponse>('/customers/location', payload);
+  return data;
+};
  
