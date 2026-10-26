@@ -3,6 +3,19 @@ import mongoose from "mongoose";
 
 const deliveryEntrySchema = new mongoose.Schema(
 {
+    owner:{
+        type:mongoose.Schema.Types.ObjectId,
+        ref:"User",
+        default:null,
+        index:true
+    },
+
+    businessId:{
+        type:mongoose.Schema.Types.ObjectId,
+        ref:"User",
+        default:null,
+        index:true
+    },
 
     dispatch:{
         type:mongoose.Schema.Types.ObjectId,

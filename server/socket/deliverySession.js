@@ -76,6 +76,7 @@ export const startSession = (dmId, socketId, user) => {
     socketId,
     name: user.name,
     mobile: user.mobile,
+    businessId: user.businessId ? user.businessId.toString() : null,
     startedAt: new Date().toISOString(),
     lastLocation: null,
   };
@@ -142,9 +143,10 @@ export const getAllActiveSessions = () => {
  * Returns a sanitized snapshot of currently active delivery sessions for authorized owners.
  * Excludes internal socket identifiers and prunes sessions older than 24 hours.
  *
+ * @param {string|null} filterBusinessId - Optional business ID to scope snapshot for multi-tenant isolation
  * @returns {Array<Object>} List of active delivery sessions with sanitized fields
  */
-export const getActiveSessionsSnapshot = () => {
+export const getActiveSessionsSnapshot = (filterBusinessId = null) => {
   const now = Date.now();
   const sessions = [];
 
@@ -156,10 +158,20 @@ export const getActiveSessionsSnapshot = () => {
       continue;
     }
 
+    // Business-scoping isolation: if filterBusinessId is set and session has a different businessId, skip
+    if (
+      filterBusinessId &&
+      session.businessId &&
+      session.businessId !== filterBusinessId.toString()
+    ) {
+      continue;
+    }
+
     sessions.push({
       dmId: session.dmId,
       name: session.name,
       mobile: session.mobile,
+      businessId: session.businessId || null,
       startedAt: session.startedAt,
       lastLocation: session.lastLocation
         ? {
@@ -204,7 +216,12 @@ export const registerOwnerDeliveryHandlers = (io, socket) => {
     }
 
     try {
-      const sessions = getActiveSessionsSnapshot();
+      const ownerBusinessId = socket.user?.businessId
+        ? socket.user.businessId.toString()
+        : socket.user?._id
+        ? socket.user._id.toString()
+        : null;
+      const sessions = getActiveSessionsSnapshot(ownerBusinessId);
       return callback({
         success: true,
         sessions,
@@ -266,16 +283,20 @@ export const registerDeliverySessionHandlers = (io, socket) => {
 
       const session = startSession(user._id, socket.id, user);
 
-      // Notify authorized owners of active DM
-      io.to("role:owner").emit("delivery:dm:active", {
+      const businessId = user.businessId ? user.businessId.toString() : null;
+      const ownerRoom = businessId ? `business:${businessId}:owner` : "role:owner";
+
+      // Notify authorized business owners of active DM
+      io.to(ownerRoom).emit("delivery:dm:active", {
         dmId: user._id,
         name: user.name,
         mobile: user.mobile,
         startedAt: session.startedAt,
+        businessId,
       });
 
       console.log(
-        `[Delivery Session] Started for DM: ${user.name} (${user.mobile}), socketId=${socket.id}, pending=${pendingCount}`
+        `[Delivery Session] Started for DM: ${user.name} (${user.mobile}), socketId=${socket.id}, pending=${pendingCount}, room=${ownerRoom}`
       );
 
       return cb?.({
@@ -333,13 +354,17 @@ export const registerDeliverySessionHandlers = (io, socket) => {
 
       updateSessionLocation(user._id, validatedCoords);
 
-      // Broadcast exclusively to authorized owners
-      io.to("role:owner").emit("delivery:location:broadcast", {
+      const businessId = user.businessId ? user.businessId.toString() : null;
+      const ownerRoom = businessId ? `business:${businessId}:owner` : "role:owner";
+
+      // Broadcast exclusively to authorized business owners
+      io.to(ownerRoom).emit("delivery:location:broadcast", {
         dmId: user._id,
         name: user.name,
         mobile: user.mobile,
         coords: validatedCoords,
         timestamp,
+        businessId,
       });
 
       return cb?.({
@@ -370,12 +395,16 @@ export const registerDeliverySessionHandlers = (io, socket) => {
       const session = stopSession(user._id);
       const stoppedAt = new Date().toISOString();
 
+      const businessId = user.businessId ? user.businessId.toString() : null;
+      const ownerRoom = businessId ? `business:${businessId}:owner` : "role:owner";
+
       if (session) {
-        io.to("role:owner").emit("delivery:dm:inactive", {
+        io.to(ownerRoom).emit("delivery:dm:inactive", {
           dmId: user._id,
           name: user.name,
           stoppedAt,
           reason: "stopped",
+          businessId,
         });
 
         console.log(

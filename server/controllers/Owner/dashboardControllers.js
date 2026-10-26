@@ -109,7 +109,12 @@ import { getActiveSessionsSnapshot } from "../../socket/deliverySession.js";
  */
 export const getActiveDeliverySessions = async (req, res) => {
   try {
-    const sessions = getActiveSessionsSnapshot();
+    const ownerBusinessId = req.user?.businessId
+      ? req.user.businessId.toString()
+      : req.user?._id
+      ? req.user._id.toString()
+      : null;
+    const sessions = getActiveSessionsSnapshot(ownerBusinessId);
     return res.status(200).json({
       success: true,
       data: sessions,
@@ -129,24 +134,39 @@ export const getActiveDeliverySessions = async (req, res) => {
  * - Deduplicates multiple delivery entries for the same customer.
  * - Includes customer name, address, delivery statuses, assigned DM, and product summary.
  * - Validates coordinates and never guesses missing coordinates.
+ * - Scoped strictly to the authenticated owner's business to prevent data crossing boundaries.
  * - Restricted to authenticated owner accounts.
  */
 export const getCustomerDeliveryLocations = async (req, res) => {
   try {
     const { startOfDay, endOfDay, dateString } = getDeliveryDayRange(req.query.date);
+    const ownerBusinessId = req.user?.businessId || req.user?._id;
 
-    // Fetch today's dispatches in one query
-    const dispatches = await Dispatch.find({
+    // Fetch today's dispatches scoped to this owner's business
+    const dispatchQuery = {
       $or: [
         { date: { $gte: startOfDay, $lte: endOfDay } },
         { createdAt: { $gte: startOfDay, $lte: endOfDay } },
       ],
-    }).select("_id");
+    };
 
+    if (ownerBusinessId) {
+      dispatchQuery.$and = [
+        {
+          $or: [
+            { owner: ownerBusinessId },
+            { businessId: ownerBusinessId },
+            { owner: { $in: [null, undefined] }, businessId: { $in: [null, undefined] } },
+          ],
+        },
+      ];
+    }
+
+    const dispatches = await Dispatch.find(dispatchQuery).select("_id");
     const dispatchIds = dispatches.map((d) => d._id);
 
-    // Query for all delivery entries on this delivery day
-    const entries = await DeliveryEntry.find({
+    // Query for all delivery entries on this delivery day, scoped to this business
+    const entryQuery = {
       $or: [
         { date: { $gte: startOfDay, $lte: endOfDay } },
         {
@@ -157,10 +177,27 @@ export const getCustomerDeliveryLocations = async (req, res) => {
           ],
         },
       ],
-    })
-      .select("customer dm products status deliveredAt date createdAt")
-      .populate("customer", "name mobile address location latitude longitude assignedDm")
-      .populate("dm", "name mobile")
+    };
+
+    if (ownerBusinessId) {
+      entryQuery.$and = [
+        {
+          $or: [
+            { owner: ownerBusinessId },
+            { businessId: ownerBusinessId },
+            {
+              owner: { $in: [null, undefined] },
+              businessId: { $in: [null, undefined] },
+            },
+          ],
+        },
+      ];
+    }
+
+    const entries = await DeliveryEntry.find(entryQuery)
+      .select("customer dm products status deliveredAt date createdAt owner businessId")
+      .populate("customer", "name mobile address location latitude longitude assignedDm businessId")
+      .populate("dm", "name mobile businessId")
       .populate("products.product", "name unit price")
       .lean();
 
@@ -169,6 +206,30 @@ export const getCustomerDeliveryLocations = async (req, res) => {
 
     for (const entry of entries) {
       if (!entry.customer || !entry.customer._id) continue;
+
+      // Prevent customer data leakage across business boundaries
+      if (
+        ownerBusinessId &&
+        entry.businessId &&
+        entry.businessId.toString() !== ownerBusinessId.toString()
+      ) {
+        continue;
+      }
+      if (
+        ownerBusinessId &&
+        entry.owner &&
+        entry.owner.toString() !== ownerBusinessId.toString()
+      ) {
+        continue;
+      }
+      if (
+        ownerBusinessId &&
+        entry.customer.businessId &&
+        entry.customer.businessId.toString() !== ownerBusinessId.toString()
+      ) {
+        continue;
+      }
+
       const custId = entry.customer._id.toString();
 
       let record = customerMap.get(custId);

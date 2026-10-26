@@ -3,6 +3,20 @@ import mongoose from "mongoose";
 
 const dispatchSchema = new mongoose.Schema(
 {
+    owner:{
+        type:mongoose.Schema.Types.ObjectId,
+        ref:"User",
+        default:null,
+        index:true
+    },
+
+    businessId:{
+        type:mongoose.Schema.Types.ObjectId,
+        ref:"User",
+        default:null,
+        index:true
+    },
+
     date:{
         type:Date,
         default:Date.now

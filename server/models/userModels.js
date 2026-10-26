@@ -99,6 +99,13 @@ const userSchema = new mongoose.Schema(
             default: null,
         },
 
+        businessId: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "User",
+            default: null,
+            index: true,
+        },
+
         qrCode: {
             type: String,
             default: ""

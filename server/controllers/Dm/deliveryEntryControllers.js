@@ -88,6 +88,7 @@ export const updateDeliveryStatus = async(req,res)=>{
         try {
             const io = getIO();
             if (io) {
+                const businessId = entry.businessId || entry.owner;
                 const payload = {
                     entryId: entry._id.toString(),
                     dispatchId: entry.dispatch ? entry.dispatch.toString() : null,
@@ -97,10 +98,12 @@ export const updateDeliveryStatus = async(req,res)=>{
                     deliveredAt: entry.deliveredAt ? entry.deliveredAt.toISOString() : null,
                     date: entry.date ? entry.date.toISOString() : (entry.createdAt ? entry.createdAt.toISOString() : new Date().toISOString()),
                     updatedAt: entry.updatedAt ? entry.updatedAt.toISOString() : new Date().toISOString(),
+                    businessId: businessId ? businessId.toString() : null,
                 };
 
-                // Notify all authenticated owners in real time
-                io.to("role:owner").emit("delivery:entry:updated", payload);
+                // Notify business-scoped owners (or fallback to role:owner if unscoped)
+                const ownerRoom = businessId ? `business:${businessId.toString()}:owner` : "role:owner";
+                io.to(ownerRoom).emit("delivery:entry:updated", payload);
 
                 // Notify strictly the target customer in their private personal room
                 io.to(`user:${entry.customer.toString()}`).emit("delivery:entry:updated", payload);

@@ -20,6 +20,15 @@ export const registerConnectionHandlers = (io) => {
     if (user?._id) {
       socket.join(`user:${user._id}`);
       socket.join(`role:${user.role}`);
+
+      // Business-scoped room joining for multi-tenancy isolation
+      const businessId = user.businessId ? user.businessId.toString() : (user.role === "owner" ? user._id.toString() : null);
+      if (businessId) {
+        socket.join(`business:${businessId}`);
+        if (user.role === "owner") {
+          socket.join(`business:${businessId}:owner`);
+        }
+      }
     }
 
     // Register delivery session events (internally enforces role checks and returns descriptive error callbacks)
@@ -38,11 +47,14 @@ export const registerConnectionHandlers = (io) => {
       // If DM was actively sharing live location, terminate session and notify owners
       const terminatedSession = handleSessionDisconnect(socket.id);
       if (terminatedSession) {
-        io.to("role:owner").emit("delivery:dm:inactive", {
+        const businessId = terminatedSession.businessId;
+        const ownerRoom = businessId ? `business:${businessId}:owner` : "role:owner";
+        io.to(ownerRoom).emit("delivery:dm:inactive", {
           dmId: terminatedSession.dmId,
           name: terminatedSession.name,
           stoppedAt: new Date().toISOString(),
           reason: "disconnected",
+          businessId: businessId || null,
         });
         console.log(
           `[Delivery Session] Active session terminated on disconnect for DM: ${terminatedSession.name}`

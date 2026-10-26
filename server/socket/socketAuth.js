@@ -44,12 +44,19 @@ export const socketAuth = async (socket, next) => {
       return next(new Error("Authentication error: User not found"));
     }
 
+    const businessId = user.businessId
+      ? user.businessId.toString()
+      : user.role === "owner"
+        ? user._id.toString()
+        : null;
+
     // Attach sanitized user information to socket
     socket.user = {
       _id: user._id.toString(),
       name: user.name,
       mobile: user.mobile,
       role: user.role,
+      businessId,
     };
 
     next();
