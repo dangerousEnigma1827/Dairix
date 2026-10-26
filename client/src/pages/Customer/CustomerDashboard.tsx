@@ -30,6 +30,7 @@ import {
 } from "../../api/Services/Customer/CustomerServices";
 import LogoutModal from "../LogoutModal";
 import { useUser } from "../../hooks/useUser";
+import { getSocket } from "../../api/socket";
 
 type DailyStatus = "delivered" | "skipped" | "pending";
 
@@ -44,6 +45,7 @@ type ProductType = {
 }
 
 type CustomerType = {
+  _id?: string;
   name: string;
   mobile: string;
   address: Address
@@ -257,7 +259,111 @@ export default function CustomerDashboard() {
     };
 
     fetchMonthly();
-    }, []);
+  }, []);
+
+  // Real-time synchronization of delivery status for authenticated customer
+  useEffect(() => {
+    const socket = getSocket();
+    if (!socket.connected) {
+      socket.connect();
+    }
+
+    const handleDeliveryUpdated = (payload: {
+      entryId: string;
+      customerId: string;
+      status: DailyStatus;
+      deliveredAt?: string | null;
+      date?: string;
+    }) => {
+      // Security check: ignore updates not belonging to this authenticated customer
+      if (customer?._id && payload.customerId !== customer._id) {
+        return;
+      }
+
+      const validStatus: DailyStatus =
+        payload.status === "delivered" || payload.status === "pending"
+          ? payload.status
+          : "skipped";
+
+      setTodayStatus(validStatus);
+      if (payload.deliveredAt) {
+        setTodayDeliveryTime(new Date(payload.deliveredAt));
+      }
+
+      // Synchronize week delivery strip
+      setWeekData((prev) => {
+        const todayDate = new Date();
+        const existingIdx = prev.findIndex((entry) => {
+          const d = new Date(entry.date);
+          return (
+            d.getDate() === todayDate.getDate() &&
+            d.getMonth() === todayDate.getMonth() &&
+            d.getFullYear() === todayDate.getFullYear()
+          );
+        });
+        if (existingIdx >= 0) {
+          const next = [...prev];
+          next[existingIdx] = {
+            ...next[existingIdx],
+            status: validStatus,
+            deliveredAt: payload.deliveredAt || next[existingIdx].deliveredAt,
+          };
+          return next;
+        }
+        return [
+          ...prev,
+          {
+            date: payload.date || new Date().toISOString(),
+            status: validStatus,
+            deliveredAt: payload.deliveredAt || null,
+          },
+        ];
+      });
+
+      // Synchronize monthly delivery tracker data
+      setMonthlyData((prev) => {
+        const todayDate = new Date();
+        const existingIdx = prev.findIndex((entry) => {
+          const d = new Date(entry.date);
+          return (
+            d.getDate() === todayDate.getDate() &&
+            d.getMonth() === todayDate.getMonth() &&
+            d.getFullYear() === todayDate.getFullYear()
+          );
+        });
+        if (existingIdx >= 0) {
+          const next = [...prev];
+          next[existingIdx] = {
+            ...next[existingIdx],
+            status: validStatus,
+            deliveredAt: payload.deliveredAt || next[existingIdx].deliveredAt,
+          };
+          return next;
+        }
+        return [
+          ...prev,
+          {
+            date: payload.date || new Date().toISOString(),
+            status: validStatus,
+            deliveredAt: payload.deliveredAt || null,
+          },
+        ];
+      });
+    };
+
+    const handleReconnect = () => {
+      // Reconcile delivery status with REST API if connection was interrupted
+      handlleGetTodaysStatus();
+    };
+
+    socket.on("delivery:entry:updated", handleDeliveryUpdated);
+    socket.on("connect", handleReconnect);
+
+    return () => {
+      socket.off("delivery:entry:updated", handleDeliveryUpdated);
+      socket.off("connect", handleReconnect);
+    };
+  }, [customer?._id]);
 
  
   if(loading.customerLoading || !customer){

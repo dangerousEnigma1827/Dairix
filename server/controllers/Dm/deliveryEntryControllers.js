@@ -1,6 +1,7 @@
 import Dispatch from "../../models/dispatchModels.js";
 import DeliveryEntry from "../../models/deliveryEntryModels.js";
 import { getDeliveryDayRange, isDeliveryDayEnded } from "../../utils/deliveryDay.js";
+import { getIO } from "../../config/socket.js";
 
 export const updateDeliveryStatus = async(req,res)=>{
     try {
@@ -82,6 +83,36 @@ export const updateDeliveryStatus = async(req,res)=>{
         }
 
         await entry.save();
+
+        // Emit delivery:entry:updated event only after database save succeeds
+        try {
+            const io = getIO();
+            if (io) {
+                const payload = {
+                    entryId: entry._id.toString(),
+                    dispatchId: entry.dispatch ? entry.dispatch.toString() : null,
+                    customerId: entry.customer.toString(),
+                    dmId: entry.dm ? entry.dm.toString() : null,
+                    status: entry.status,
+                    deliveredAt: entry.deliveredAt ? entry.deliveredAt.toISOString() : null,
+                    date: entry.date ? entry.date.toISOString() : (entry.createdAt ? entry.createdAt.toISOString() : new Date().toISOString()),
+                    updatedAt: entry.updatedAt ? entry.updatedAt.toISOString() : new Date().toISOString(),
+                };
+
+                // Notify all authenticated owners in real time
+                io.to("role:owner").emit("delivery:entry:updated", payload);
+
+                // Notify strictly the target customer in their private personal room
+                io.to(`user:${entry.customer.toString()}`).emit("delivery:entry:updated", payload);
+
+                // Notify the delivery partner in their private room for multi-device sync
+                if (entry.dm) {
+                    io.to(`user:${entry.dm.toString()}`).emit("delivery:entry:updated", payload);
+                }
+            }
+        } catch (socketErr) {
+            console.warn("[Socket.IO] Could not emit delivery:entry:updated:", socketErr.message);
+        }
 
         res.status(200).json(entry);
 

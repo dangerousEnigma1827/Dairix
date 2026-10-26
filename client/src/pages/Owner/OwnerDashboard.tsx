@@ -19,6 +19,7 @@ import {
   CalendarClock,
 } from "lucide-react";
 import LiveDeliveryMap from "../../components/Owner/LiveDeliveryMap";
+import { getSocket } from "../../api/socket";
 import {
   ResponsiveContainer,
   AreaChart,
@@ -222,6 +223,53 @@ export default function OwnerDashboard() {
     fetchWeeklyStats();
   }, []);
 
+  // Real-time synchronization of delivery entry updates
+  useEffect(() => {
+    const socket = getSocket();
+    if (!socket.connected) {
+      socket.connect();
+    }
+
+    const handleEntryUpdated = (payload: {
+      entryId: string;
+      dispatchId?: string | null;
+      customerId: string;
+      dmId?: string | null;
+      status: "delivered" | "skipped" | "pending";
+      deliveredAt?: string | null;
+    }) => {
+      setDeliveryEntries((prev) => {
+        let changed = false;
+        const next = prev.map((e) => {
+          if (e._id === payload.entryId) {
+            changed = true;
+            return {
+              ...e,
+              status: payload.status,
+              deliveredAt: payload.deliveredAt || e.deliveredAt,
+            };
+          }
+          return e;
+        });
+        return changed ? next : prev;
+      });
+    };
+
+    const handleReconnect = () => {
+      // Reconcile all delivery data upon socket reconnection
+      fetchAll(true);
+      fetchWeeklyStats();
+    };
+
+    socket.on("delivery:entry:updated", handleEntryUpdated);
+    socket.on("connect", handleReconnect);
+
+    return () => {
+      socket.off("delivery:entry:updated", handleEntryUpdated);
+      socket.off("connect", handleReconnect);
+    };
+  }, []);
+
   const handleRefresh = () => {
     fetchAll(true);
     fetchWeeklyStats();
@@ -359,7 +407,7 @@ export default function OwnerDashboard() {
         )}
 
         {/* ── Live Delivery Tracking Map ── */}
-        <LiveDeliveryMap />
+        <LiveDeliveryMap selectedDate={dispatchDoc?.date} />
 
         {/* ── Main grid ── */}
         <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
