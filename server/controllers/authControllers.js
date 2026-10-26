@@ -6,6 +6,7 @@ import cookieOptions from "../utils/cookieOptions.js";
 import jwt from "jsonwebtoken"
 import bcrypt from 'bcrypt'
 import { redisClient } from "../config/redis.js";
+import { isValidCoordinates } from "../utils/coordinates.js";
 
 
 export const signup = asyncHandler(async (req, res) => {
@@ -32,6 +33,14 @@ export const signup = asyncHandler(async (req, res) => {
 
   // console.log("recieved2")
 
+  let location = undefined;
+  if (address && isValidCoordinates(address.latitude, address.longitude)) {
+    location = {
+      latitude: Number(address.latitude),
+      longitude: Number(address.longitude),
+    };
+  }
+
   const user = await User.create({
     name,
     mobile,
@@ -40,6 +49,9 @@ export const signup = asyncHandler(async (req, res) => {
     role: "customer",
 
     address,
+    location,
+    latitude: location?.latitude,
+    longitude: location?.longitude,
     deliveryNotes
   });
 

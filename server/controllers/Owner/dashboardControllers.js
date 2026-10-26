@@ -1,5 +1,7 @@
 import DeliveryEntry from "../../models/deliveryEntryModels.js";
+import Dispatch from "../../models/dispatchModels.js";
 import { getDeliveryDayRange, getKolkataDateString, TIMEZONE } from "../../utils/deliveryDay.js";
+import { normalizeCoordinates } from "../../utils/coordinates.js";
 
 export const getWeeklyStats = async (req, res) => {
   try {
@@ -118,6 +120,159 @@ export const getActiveDeliverySessions = async (req, res) => {
     return res.status(500).json({
       success: false,
       message: "Failed to fetch active delivery sessions",
+    });
+  }
+};
+
+/**
+ * Controller to fetch customer delivery locations for the selected delivery day.
+ * - Deduplicates multiple delivery entries for the same customer.
+ * - Includes customer name, address, delivery statuses, assigned DM, and product summary.
+ * - Validates coordinates and never guesses missing coordinates.
+ * - Restricted to authenticated owner accounts.
+ */
+export const getCustomerDeliveryLocations = async (req, res) => {
+  try {
+    const { startOfDay, endOfDay, dateString } = getDeliveryDayRange(req.query.date);
+
+    // Fetch today's dispatches in one query
+    const dispatches = await Dispatch.find({
+      $or: [
+        { date: { $gte: startOfDay, $lte: endOfDay } },
+        { createdAt: { $gte: startOfDay, $lte: endOfDay } },
+      ],
+    }).select("_id");
+
+    const dispatchIds = dispatches.map((d) => d._id);
+
+    // Query for all delivery entries on this delivery day
+    const entries = await DeliveryEntry.find({
+      $or: [
+        { date: { $gte: startOfDay, $lte: endOfDay } },
+        {
+          date: { $in: [null, undefined] },
+          $or: [
+            { dispatch: { $in: dispatchIds } },
+            { createdAt: { $gte: startOfDay, $lte: endOfDay } },
+          ],
+        },
+      ],
+    })
+      .select("customer dm products status deliveredAt date createdAt")
+      .populate("customer", "name mobile address location latitude longitude assignedDm")
+      .populate("dm", "name mobile")
+      .populate("products.product", "name unit price")
+      .lean();
+
+    // Deduplicate by customer ID and summarize statuses
+    const customerMap = new Map();
+
+    for (const entry of entries) {
+      if (!entry.customer || !entry.customer._id) continue;
+      const custId = entry.customer._id.toString();
+
+      let record = customerMap.get(custId);
+      if (!record) {
+        const c = entry.customer;
+        const coordinates = normalizeCoordinates({
+          latitude: c.address?.latitude ?? c.location?.latitude ?? c.latitude,
+          longitude: c.address?.longitude ?? c.location?.longitude ?? c.longitude,
+        });
+
+        record = {
+          customerId: custId,
+          name: c.name,
+          mobile: c.mobile,
+          address: c.address || null,
+          coordinates,
+          assignedDm: entry.dm
+            ? { _id: entry.dm._id, name: entry.dm.name, mobile: entry.dm.mobile }
+            : c.assignedDm
+            ? { _id: c.assignedDm }
+            : null,
+          deliveries: [],
+        };
+        customerMap.set(custId, record);
+      }
+
+      // Add delivery stop details
+      record.deliveries.push({
+        entryId: entry._id,
+        status: entry.status,
+        deliveredAt: entry.deliveredAt || null,
+        products: (entry.products || []).map((p) => ({
+          name: p.product?.name || "Milk",
+          quantity: p.quantity,
+          unit: p.product?.unit || "L",
+        })),
+        dm: entry.dm
+          ? { _id: entry.dm._id, name: entry.dm.name, mobile: entry.dm.mobile }
+          : null,
+      });
+
+      // Update assignedDm if populated on this entry
+      if (entry.dm && (!record.assignedDm || !record.assignedDm.name)) {
+        record.assignedDm = {
+          _id: entry.dm._id,
+          name: entry.dm.name,
+          mobile: entry.dm.mobile,
+        };
+      }
+    }
+
+    // Summarize statuses per customer
+    const customers = Array.from(customerMap.values()).map((cust) => {
+      const statuses = cust.deliveries.map((d) => d.status);
+      let overallStatus = "pending";
+
+      if (statuses.length > 0) {
+        if (statuses.every((s) => s === "delivered")) {
+          overallStatus = "delivered";
+        } else if (statuses.every((s) => s === "skipped")) {
+          overallStatus = "skipped";
+        } else if (statuses.some((s) => s === "delivered") && statuses.some((s) => s !== "delivered")) {
+          overallStatus = "partial";
+        } else {
+          overallStatus = "pending";
+        }
+      }
+
+      // Format a concise product breakdown
+      const productCounts = new Map();
+      cust.deliveries.forEach((d) => {
+        d.products.forEach((p) => {
+          const key = `${p.name} (${p.unit})`;
+          productCounts.set(key, (productCounts.get(key) || 0) + p.quantity);
+        });
+      });
+      const productSummary = Array.from(productCounts.entries())
+        .map(([name, qty]) => `${qty} ${name}`)
+        .join(", ");
+
+      return {
+        ...cust,
+        overallStatus,
+        totalDeliveries: cust.deliveries.length,
+        productSummary: productSummary || "Standard delivery",
+      };
+    });
+
+    const withCoordinates = customers.filter((c) => c.coordinates !== null);
+    const withoutCoordinates = customers.filter((c) => c.coordinates === null);
+
+    return res.status(200).json({
+      success: true,
+      date: dateString,
+      totalCustomers: customers.length,
+      withCoordinatesCount: withCoordinates.length,
+      withoutCoordinatesCount: withoutCoordinates.length,
+      data: customers,
+    });
+  } catch (err) {
+    console.error("Error fetching customer delivery locations:", err);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to fetch customer delivery locations",
     });
   }
 };

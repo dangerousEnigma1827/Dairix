@@ -32,6 +32,16 @@ const addressSchema = new mongoose.Schema(
             trim: true,
             default: "",
         },
+
+        latitude: {
+            type: Number,
+            default: null,
+        },
+
+        longitude: {
+            type: Number,
+            default: null,
+        },
     },
     {
         _id: false,
@@ -92,6 +102,21 @@ const userSchema = new mongoose.Schema(
         qrCode: {
             type: String,
             default: ""
+        },
+
+        location: {
+            latitude: { type: Number, default: null },
+            longitude: { type: Number, default: null },
+        },
+
+        latitude: {
+            type: Number,
+            default: null,
+        },
+
+        longitude: {
+            type: Number,
+            default: null,
         },
 
         products:{ 

@@ -4,6 +4,7 @@ import {
   getTodaysDeliveryStatus,
   getWeeklyDeliveryTrack,
   updateCustomerSubs,
+  updateCustomerLocation,
 } from "../../controllers/Customer/customerControllers.js";
 import { authenticate, requireRole } from "../../middlewares/authMiddlewares.js";
 import { rateLimiter } from "../../middlewares/rateLimiterMiddlewares.js";
@@ -12,6 +13,9 @@ const router = express.Router();
 
 // Customer or Owner can update customer subscriptions
 router.post("/:customerId/products/manage", authenticate, requireRole("customer", "owner"), updateCustomerSubs);
+
+// Customer delivery location update
+router.put("/location", authenticate, requireRole("customer"), rateLimiter, updateCustomerLocation);
 
 // Customer delivery tracking
 router.get("/deliveries/today", authenticate, requireRole("customer"), rateLimiter, getTodaysDeliveryStatus);

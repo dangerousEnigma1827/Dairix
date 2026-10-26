@@ -6,6 +6,8 @@ export const addressSchema = z.object({
   landmark: z.string().optional(),
   city: z.string().optional(),
   pincode: z.string().optional(),
+  latitude: z.number().nullable().optional(),
+  longitude: z.number().nullable().optional(),
 }).optional();
 
 export const signUpSchema = z.object({
