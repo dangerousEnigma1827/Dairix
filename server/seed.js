@@ -106,51 +106,52 @@ const DUMMY_DMS = [
 
 // 60 Customers
 const DUMMY_CUSTOMERS = [
-  { name: "Aarav Sharma", mobile: "9810010001", houseNo: "Flat 402, Block A", street: "Green Glen Layout", landmark: "Near Apollo Pharmacy", city: "Bengaluru", pincode: "560103", notes: "Leave milk in basket on door hook" },
-  { name: "Priya Patel", mobile: "9810010002", houseNo: "Villa 12, Palm Meadows", street: "Airport Road, Varthur", landmark: "Opposite Sigma Tech Park", city: "Bengaluru", pincode: "560066", notes: "Ring doorbell once gently before 6:30 AM" },
-  { name: "Rohan Mehta", mobile: "9810010003", houseNo: "House 54, 4th Cross", street: "Koramangala 4th Block", landmark: "Behind BDA Park", city: "Bengaluru", pincode: "560034", notes: "Keep in cooler bag by door" },
-  { name: "Ananya Gupta", mobile: "9810010004", houseNo: "B-304, Sun City Apts", street: "Sarjapur Outer Ring Road", landmark: "Near Bellandur Flyover", city: "Bengaluru", pincode: "560102", notes: "Leave outside flat door, do not ring" },
-  { name: "Siddharth Verma", mobile: "9810010005", houseNo: "Penthouse 1102", street: "12th Main, Indiranagar", landmark: "Next to Cafe Coffee Day", city: "Bengaluru", pincode: "560038", notes: "Security guard has lift access key" },
-  { name: "Neha Reddy", mobile: "9810010006", houseNo: "Flat 201, Orchid Enclave", street: "HSR Layout Sector 1", landmark: "Near Agara Lake View", city: "Bengaluru", pincode: "560102", notes: "Drop milk packet in porch basket" },
-  { name: "Aditya Joshi", mobile: "9810010007", houseNo: "B-14, Shanti Niketan", street: "Bannerghatta Main Road", landmark: "Opposite Fortis Hospital", city: "Bengaluru", pincode: "560076", notes: "Morning drop between 6:00 AM - 7:00 AM" },
-  { name: "Kavita Iyer", mobile: "9810010008", houseNo: "Flat 503, Tower C", street: "Prestige Shantiniketan", landmark: "Near Hoodi Metro Station", city: "Bengaluru", pincode: "560048", notes: "Deliver to door. Bell is working." },
-  { name: "Rahul Malhotra", mobile: "9810010009", houseNo: "C-22, Defence Colony", street: "HAL 2nd Stage", landmark: "Near Leela Palace", city: "Bengaluru", pincode: "560008", notes: "Leave milk packet on porch table" },
-  { name: "Pooja Nair", mobile: "9810010010", houseNo: "Plot 89, 7th Main", street: "BTM 2nd Stage", landmark: "Near Udupi Garden Signal", city: "Bengaluru", pincode: "560076", notes: "Please do not ring bell (baby asleep)" },
-  { name: "Kunal Bansal", mobile: "9810010011", houseNo: "Flat 604, Tower 3", street: "Brigade Gateway, Rajajinagar", landmark: "Near Orion Mall", city: "Bengaluru", pincode: "560055", notes: "Leave with security reception if before 6 AM" },
-  { name: "Shweta Deshmukh", mobile: "9810010012", houseNo: "Flat 101, Lotus Heights", street: "Kasturi Nagar Main Road", landmark: "Near East Point Hospital", city: "Bengaluru", pincode: "560043", notes: "Hang bag on door handle" },
-  { name: "Arjun Kulkarni", mobile: "9810010013", houseNo: "Villa 45, Sobha City", street: "Thanisandra Main Road", landmark: "Near Manyata Tech Park", city: "Bengaluru", pincode: "560077", notes: "Leave inside milk box" },
-  { name: "Divya Saxena", mobile: "9810010014", houseNo: "Flat 801, Wing B", street: "Central Avenue, Powai", landmark: "Opposite Hakone Entertainment", city: "Mumbai", pincode: "400076", notes: "Security gate entry code 7781" },
-  { name: "Rohit Choudhary", mobile: "9810010015", houseNo: "Flat 302, Sea Pearl", street: "Carter Road, Bandra West", landmark: "Near Cafe Coffee Day Promenade", city: "Mumbai", pincode: "400050", notes: "Leave at door step" },
-  { name: "Tanvi Bhatia", mobile: "9810010016", houseNo: "Flat 505, Royal Palms", street: "Aarey Colony, Goregaon East", landmark: "Near Royal Palms Golf Course", city: "Mumbai", pincode: "400065", notes: "Keep in chilled delivery box" },
-  { name: "Vivek Sengupta", mobile: "9810010017", houseNo: "Flat 202, Silver Crest", street: "Lokhandwala Market Road", landmark: "Near High Point Restaurant", city: "Mumbai", pincode: "400053", notes: "Ring bell once" },
-  { name: "Sneha Kulkarni", mobile: "9810010018", houseNo: "Flat 701, Emerald Isle", street: "Saki Vihar Road, Powai", landmark: "Near L&T Infotech Gate 5", city: "Mumbai", pincode: "400072", notes: "Early morning drop preferred" },
-  { name: "Nikhil Aggarwal", mobile: "9810010019", houseNo: "House 18, 14th Road", street: "Khar West", landmark: "Near Khar Gymkhana", city: "Mumbai", pincode: "400052", notes: "Deliver on porch" },
-  { name: "Ritu Singhania", mobile: "9810010020", houseNo: "Flat 1204, Lodha Bellissimo", street: "NM Joshi Marg, Mahalaxmi", landmark: "Near Currey Road Station", city: "Mumbai", pincode: "400011", notes: "Service lift delivery to door" },
-  { name: "Abhishek Rao", mobile: "9810010021", houseNo: "B-201, Pristine Magna", street: "Wakad-Hinjawadi Link Road", landmark: "Near D-Mart Wakad", city: "Pune", pincode: "411057", notes: "Leave in red milk pouch" },
-  { name: "Meera Nambiar", mobile: "9810010022", houseNo: "Row House 7", street: "Mayur Colony, Kothrud", landmark: "Near Joggers Park", city: "Pune", pincode: "411038", notes: "Keep on milk stool by door" },
-  { name: "Varun Pillai", mobile: "9810010023", houseNo: "Flat 403, Blue Ridge", street: "Phase 1, Hinjawadi", landmark: "Near Cognizant Campus", city: "Pune", pincode: "411057", notes: "Deliver before 6:45 AM" },
-  { name: "Swati Mukherjee", mobile: "9810010024", houseNo: "Flat 102, Kumar Sublime", street: "Kalyani Nagar Main Road", landmark: "Near Joggers Park Gate 2", city: "Pune", pincode: "411006", notes: "Doorbell ring requested" },
-  { name: "Gaurav Chawla", mobile: "9810010025", houseNo: "Villa 32, Nyati Estate", street: "Mohammed Wadi", landmark: "Near DPS School", city: "Pune", pincode: "411060", notes: "Gate latch is on right side" },
-  { name: "Ishita Sen", mobile: "9810010026", houseNo: "Flat 904, Aparna Sarovar", street: "Nallagandla Main Road", landmark: "Near Citizen Hospital", city: "Hyderabad", pincode: "500019", notes: "Leave on entrance mat" },
-  { name: "Harish Venkatesh", mobile: "9810010027", houseNo: "Plot 14, Road No 12", street: "Banjara Hills", landmark: "Near MLA Colony", city: "Hyderabad", pincode: "500034", notes: "Security guard will collect" },
-  { name: "Riya Kapoor", mobile: "9810010028", houseNo: "Flat 303, My Home Bhooja", street: "Knowledge City, Hitec City", landmark: "Near IKEA Store", city: "Hyderabad", pincode: "500081", notes: "Door delivery via tower lift" },
-  { name: "Manish Jain", mobile: "9810010029", houseNo: "House 28, Telecom Nagar", street: "Gachibowli", landmark: "Near Urdu University", city: "Hyderabad", pincode: "500032", notes: "Leave milk packet on table" },
-  { name: "Pallavi Hegde", mobile: "9810010030", houseNo: "Flat 602, Jayabheri Silicon", street: "Kondapur Main Road", landmark: "Opposite Botanical Garden", city: "Hyderabad", pincode: "500084", notes: "Deliver between 6-7 AM" },
-  { name: "Sandeep Tiwari", mobile: "9810010031", houseNo: "House 82, Block B", street: "Sector 14, Noida", landmark: "Near Noida Stadium", city: "Delhi NCR", pincode: "201301", notes: "Drop inside gate milk box" },
-  { name: "Sunita Menon", mobile: "9810010032", houseNo: "Flat 401, ATS Greens", street: "Sector 93A, Noida Expressway", landmark: "Near Geeta Bhawan", city: "Delhi NCR", pincode: "201304", notes: "Please ring twice" },
-  { name: "Tarun Bhatt", mobile: "9810010033", houseNo: "A-45, Hauz Khas Enclave", street: "Aurobindo Marg", landmark: "Near Hauz Khas Metro", city: "Delhi NCR", pincode: "110016", notes: "Hand over to cook if awake" },
-  { name: "Deepa Subramanian", mobile: "9810010034", houseNo: "C-12, Vasant Vihar", street: "Paschimi Marg", landmark: "Near Priya Cinema Market", city: "Delhi NCR", pincode: "110057", notes: "Keep in thermal box" },
-  { name: "Alok Pandey", mobile: "9810010035", houseNo: "House 104, Sector 23", street: "Palam Vihar Road", landmark: "Near Columbia Asia Hospital", city: "Delhi NCR", pincode: "122017", notes: "Drop in morning delivery tray" },
-  { name: "Preeti Goel", mobile: "9810010036", houseNo: "Villa 10, Nirvana Country", street: "Sector 50, Gurgaon", landmark: "Opposite Baani Square", city: "Delhi NCR", pincode: "122018", notes: "Doorbell only if after 7 AM" },
-  { name: "Mayank Trivedi", mobile: "9810010037", houseNo: "Flat 301, Coral Castle", street: "Subhash Marg, C-Scheme", landmark: "Near Statue Circle", city: "Jaipur", pincode: "302001", notes: "Deliver to 3rd floor flat" },
-  { name: "Rashmi Kaushik", mobile: "9810010038", houseNo: "House 24, Sector 7", street: "Malviya Nagar", landmark: "Near Gaurav Tower", city: "Jaipur", pincode: "302017", notes: "Leave milk in side bag" },
-  { name: "Mohit Anand", mobile: "9810010039", houseNo: "B-18, Vaishali Marg", street: "Vaishali Nagar", landmark: "Near Amrapali Circle", city: "Jaipur", pincode: "302021", notes: "Leave outside main door" },
-  { name: "Shalini Mittal", mobile: "9810010040", houseNo: "Plot 67, Tilak Nagar", street: "Raja Park Main Road", landmark: "Near LBS College", city: "Jaipur", pincode: "302004", notes: "Morning drop before 6:30 AM" },
-  { name: "Karan Varma", mobile: "9810010041", houseNo: "Flat 102, Suncity Glorious", street: "Koramangala 1st Block", landmark: "Near Wipro Park", city: "Bengaluru", pincode: "560034", notes: "Leave at door" },
-  { name: "Sangeeta Ghosh", mobile: "9810010042", houseNo: "House 312, 17th Cross", street: "HSR Layout Sector 4", landmark: "Near BDA Park", city: "Bengaluru", pincode: "560102", notes: "Drop in porch basket" },
-  { name: "Naveen Prasad", mobile: "9810010043", houseNo: "Flat 504, Tower B", street: "Godrej United, Whitefield", landmark: "Near Mahadevapura Ring Road", city: "Bengaluru", pincode: "560048", notes: "Deliver to door" },
-  { name: "Rekha Pillai", mobile: "9810010044", houseNo: "Villa 19, Adarsh Palm Retreat", street: "Outer Ring Road, Bellandur", landmark: "Near Devarabisanahalli", city: "Bengaluru", pincode: "560103", notes: "Drop in cooler bag" },
-  { name: "Hemant Bajaj", mobile: "9810010045", houseNo: "B-403, Salarpuria Greenage", street: "Hosur Road, Bommanahalli", landmark: "Near Oxford College", city: "Bengaluru", pincode: "560068", notes: "Leave milk packet on door hook" },
+  { name: "Aarav Sharma", mobile: "9810010001", houseNo: "Flat 402, Block A", street: "Green Glen Layout", landmark: "Near Apollo Pharmacy", city: "Bengaluru", pincode: "560103", latitude: 12.9298, longitude: 77.6743, notes: "Leave milk in basket on door hook" },
+  { name: "Priya Patel", mobile: "9810010002", houseNo: "Villa 12, Palm Meadows", street: "Airport Road, Varthur", landmark: "Opposite Sigma Tech Park", city: "Bengaluru", pincode: "560066", latitude: 12.9567, longitude: 77.7410, notes: "Ring doorbell once gently before 6:30 AM" },
+  { name: "Rohan Mehta", mobile: "9810010003", houseNo: "House 54, 4th Cross", street: "Koramangala 4th Block", landmark: "Behind BDA Park", city: "Bengaluru", pincode: "560034", latitude: 12.9344, longitude: 77.6256, notes: "Keep in cooler bag by door" },
+  { name: "Ananya Gupta", mobile: "9810010004", houseNo: "B-304, Sun City Apts", street: "Sarjapur Outer Ring Road", landmark: "Near Bellandur Flyover", city: "Bengaluru", pincode: "560102", latitude: 12.9352, longitude: 77.6821, notes: "Leave outside flat door, do not ring" },
+  { name: "Siddharth Verma", mobile: "9810010005", houseNo: "Penthouse 1102", street: "12th Main, Indiranagar", landmark: "Next to Cafe Coffee Day", city: "Bengaluru", pincode: "560038", latitude: 12.9784, longitude: 77.6408, notes: "Security guard has lift access key" },
+  { name: "Neha Reddy", mobile: "9810010006", houseNo: "Flat 201, Orchid Enclave", street: "HSR Layout Sector 1", landmark: "Near Agara Lake View", city: "Bengaluru", pincode: "560102", latitude: 12.9116, longitude: 77.6389, notes: "Drop milk packet in porch basket" },
+  { name: "Aditya Joshi", mobile: "9810010007", houseNo: "B-14, Shanti Niketan", street: "Bannerghatta Main Road", landmark: "Opposite Fortis Hospital", city: "Bengaluru", pincode: "560076", latitude: 12.8942, longitude: 77.5991, notes: "Morning drop between 6:00 AM - 7:00 AM" },
+  { name: "Kavita Iyer", mobile: "9810010008", houseNo: "Flat 503, Tower C", street: "Prestige Shantiniketan", landmark: "Near Hoodi Metro Station", city: "Bengaluru", pincode: "560048", latitude: 12.9892, longitude: 77.7281, notes: "Deliver to door. Bell is working." },
+  { name: "Rahul Malhotra", mobile: "9810010009", houseNo: "C-22, Defence Colony", street: "HAL 2nd Stage", landmark: "Near Leela Palace", city: "Bengaluru", pincode: "560008", latitude: 12.9647, longitude: 77.6534, notes: "Leave milk packet on porch table" },
+  { name: "Pooja Nair", mobile: "9810010010", houseNo: "Plot 89, 7th Main", street: "BTM 2nd Stage", landmark: "Near Udupi Garden Signal", city: "Bengaluru", pincode: "560076", latitude: 12.9166, longitude: 77.6101, notes: "Please do not ring bell (baby asleep)" },
+  { name: "Kunal Bansal", mobile: "9810010011", houseNo: "Flat 604, Tower 3", street: "Brigade Gateway, Rajajinagar", landmark: "Near Orion Mall", city: "Bengaluru", pincode: "560055", latitude: 13.0125, longitude: 77.5554, notes: "Leave with security reception if before 6 AM" },
+  { name: "Shweta Deshmukh", mobile: "9810010012", houseNo: "Flat 101, Lotus Heights", street: "Kasturi Nagar Main Road", landmark: "Near East Point Hospital", city: "Bengaluru", pincode: "560043", latitude: 13.0031, longitude: 77.6575, notes: "Hang bag on door handle" },
+  { name: "Arjun Kulkarni", mobile: "9810010013", houseNo: "Villa 45, Sobha City", street: "Thanisandra Main Road", landmark: "Near Manyata Tech Park", city: "Bengaluru", pincode: "560077", latitude: 13.0543, longitude: 77.6322, notes: "Leave inside milk box" },
+  { name: "Divya Saxena", mobile: "9810010014", houseNo: "Flat 801, Wing B", street: "Central Avenue, Powai", landmark: "Opposite Hakone Entertainment", city: "Mumbai", pincode: "400076", latitude: 19.1176, longitude: 72.9060, notes: "Security gate entry code 7781" },
+  { name: "Rohit Choudhary", mobile: "9810010015", houseNo: "Flat 302, Sea Pearl", street: "Carter Road, Bandra West", landmark: "Near Cafe Coffee Day Promenade", city: "Mumbai", pincode: "400050", latitude: 19.0657, longitude: 72.8272, notes: "Leave at door step" },
+  { name: "Tanvi Bhatia", mobile: "9810010016", houseNo: "Flat 505, Royal Palms", street: "Aarey Colony, Goregaon East", landmark: "Near Royal Palms Golf Course", city: "Mumbai", pincode: "400065", latitude: 19.1553, longitude: 72.8845, notes: "Keep in chilled delivery box" },
+  { name: "Vivek Sengupta", mobile: "9810010017", houseNo: "Flat 202, Silver Crest", street: "Lokhandwala Market Road", landmark: "Near High Point Restaurant", city: "Mumbai", pincode: "400053", latitude: 19.1415, longitude: 72.8267, notes: "Ring bell once" },
+  { name: "Sneha Kulkarni", mobile: "9810010018", houseNo: "Flat 701, Emerald Isle", street: "Saki Vihar Road, Powai", landmark: "Near L&T Infotech Gate 5", city: "Mumbai", pincode: "400072", latitude: 19.1128, longitude: 72.8887, notes: "Early morning drop preferred" },
+  { name: "Nikhil Aggarwal", mobile: "9810010019", houseNo: "House 18, 14th Road", street: "Khar West", landmark: "Near Khar Gymkhana", city: "Mumbai", pincode: "400052", latitude: 19.0700, longitude: 72.8339, notes: "Deliver on porch" },
+  { name: "Ritu Singhania", mobile: "9810010020", houseNo: "Flat 1204, Lodha Bellissimo", street: "NM Joshi Marg, Mahalaxmi", landmark: "Near Currey Road Station", city: "Mumbai", pincode: "400011", latitude: 18.9950, longitude: 72.8258, notes: "Service lift delivery to door" },
+  { name: "Abhishek Rao", mobile: "9810010021", houseNo: "B-201, Pristine Magna", street: "Wakad-Hinjawadi Link Road", landmark: "Near D-Mart Wakad", city: "Pune", pincode: "411057", latitude: 18.5987, longitude: 73.7621, notes: "Leave in red milk pouch" },
+  { name: "Meera Nambiar", mobile: "9810010022", houseNo: "Row House 7", street: "Mayur Colony, Kothrud", landmark: "Near Joggers Park", city: "Pune", pincode: "411038", latitude: 18.5074, longitude: 73.8077, notes: "Keep on milk stool by door" },
+  { name: "Varun Pillai", mobile: "9810010023", houseNo: "Flat 403, Blue Ridge", street: "Phase 1, Hinjawadi", landmark: "Near Cognizant Campus", city: "Pune", pincode: "411057", latitude: 18.5831, longitude: 73.7380, notes: "Deliver before 6:45 AM" },
+  { name: "Swati Mukherjee", mobile: "9810010024", houseNo: "Flat 102, Kumar Sublime", street: "Kalyani Nagar Main Road", landmark: "Near Joggers Park Gate 2", city: "Pune", pincode: "411006", latitude: 18.5482, longitude: 73.9022, notes: "Doorbell ring requested" },
+  { name: "Gaurav Chawla", mobile: "9810010025", houseNo: "Villa 32, Nyati Estate", street: "Mohammed Wadi", landmark: "Near DPS School", city: "Pune", pincode: "411060", latitude: 18.4735, longitude: 73.9142, notes: "Gate latch is on right side" },
+  { name: "Ishita Sen", mobile: "9810010026", houseNo: "Flat 904, Aparna Sarovar", street: "Nallagandla Main Road", landmark: "Near Citizen Hospital", city: "Hyderabad", pincode: "500019", latitude: 17.4721, longitude: 78.3142, notes: "Leave on entrance mat" },
+  { name: "Harish Venkatesh", mobile: "9810010027", houseNo: "Plot 14, Road No 12", street: "Banjara Hills", landmark: "Near MLA Colony", city: "Hyderabad", pincode: "500034", latitude: 17.4156, longitude: 78.4350, notes: "Security guard will collect" },
+  { name: "Riya Kapoor", mobile: "9810010028", houseNo: "Flat 303, My Home Bhooja", street: "Knowledge City, Hitec City", landmark: "Near IKEA Store", city: "Hyderabad", pincode: "500081", latitude: 17.4375, longitude: 78.3812, notes: "Door delivery via tower lift" },
+  { name: "Manish Jain", mobile: "9810010029", houseNo: "House 28, Telecom Nagar", street: "Gachibowli", landmark: "Near Urdu University", city: "Hyderabad", pincode: "500032", latitude: 17.4401, longitude: 78.3489, notes: "Leave milk packet on table" },
+  { name: "Pallavi Hegde", mobile: "9810010030", houseNo: "Flat 602, Jayabheri Silicon", street: "Kondapur Main Road", landmark: "Opposite Botanical Garden", city: "Hyderabad", pincode: "500084", latitude: 17.4648, longitude: 78.3615, notes: "Deliver between 6-7 AM" },
+  { name: "Sandeep Tiwari", mobile: "9810010031", houseNo: "House 82, Block B", street: "Sector 14, Noida", landmark: "Near Noida Stadium", city: "Delhi NCR", pincode: "201301", latitude: 28.5833, longitude: 77.3150, notes: "Drop inside gate milk box" },
+  { name: "Sunita Menon", mobile: "9810010032", houseNo: "Flat 401, ATS Greens", street: "Sector 93A, Noida Expressway", landmark: "Near Geeta Bhawan", city: "Delhi NCR", pincode: "201304", latitude: 28.5152, longitude: 77.3821, notes: "Please ring twice" },
+  { name: "Tarun Bhatt", mobile: "9810010033", houseNo: "A-45, Hauz Khas Enclave", street: "Aurobindo Marg", landmark: "Near Hauz Khas Metro", city: "Delhi NCR", pincode: "110016", latitude: 28.5494, longitude: 77.2001, notes: "Hand over to cook if awake" },
+  { name: "Deepa Subramanian", mobile: "9810010034", houseNo: "C-12, Vasant Vihar", street: "Paschimi Marg", landmark: "Near Priya Cinema Market", city: "Delhi NCR", pincode: "110057", latitude: 28.5603, longitude: 77.1611, notes: "Keep in thermal box" },
+  { name: "Alok Pandey", mobile: "9810010035", houseNo: "House 104, Sector 23", street: "Palam Vihar Road", landmark: "Near Columbia Asia Hospital", city: "Delhi NCR", pincode: "122017", latitude: 28.5085, longitude: 77.0315, notes: "Drop in morning delivery tray" },
+  { name: "Preeti Goel", mobile: "9810010036", houseNo: "Villa 10, Nirvana Country", street: "Sector 50, Gurgaon", landmark: "Opposite Baani Square", city: "Delhi NCR", pincode: "122018", latitude: 28.4172, longitude: 77.0674, notes: "Doorbell only if after 7 AM" },
+  { name: "Mayank Trivedi", mobile: "9810010037", houseNo: "Flat 301, Coral Castle", street: "Subhash Marg, C-Scheme", landmark: "Near Statue Circle", city: "Jaipur", pincode: "302001", latitude: 26.9075, longitude: 75.8021, notes: "Deliver to 3rd floor flat" },
+  { name: "Rashmi Kaushik", mobile: "9810010038", houseNo: "House 24, Sector 7", street: "Malviya Nagar", landmark: "Near Gaurav Tower", city: "Jaipur", pincode: "302017", latitude: 26.8542, longitude: 75.8234, notes: "Leave milk in side bag" },
+  { name: "Mohit Anand", mobile: "9810010039", houseNo: "B-18, Vaishali Marg", street: "Vaishali Nagar", landmark: "Near Amrapali Circle", city: "Jaipur", pincode: "302021", latitude: 26.9028, longitude: 75.7410, notes: "Leave outside main door" },
+  { name: "Shalini Mittal", mobile: "9810010040", houseNo: "Plot 67, Tilak Nagar", street: "Raja Park Main Road", landmark: "Near LBS College", city: "Jaipur", pincode: "302004", latitude: 26.8925, longitude: 75.8312, notes: "Morning drop before 6:30 AM" },
+  { name: "Karan Varma", mobile: "9810010041", houseNo: "Flat 102, Suncity Glorious", street: "Koramangala 1st Block", landmark: "Near Wipro Park", city: "Bengaluru", pincode: "560034", latitude: 12.9279, longitude: 77.6271, notes: "Leave at door" },
+  { name: "Sangeeta Ghosh", mobile: "9810010042", houseNo: "House 312, 17th Cross", street: "HSR Layout Sector 4", landmark: "Near BDA Park", city: "Bengaluru", pincode: "560102", latitude: 12.9102, longitude: 77.6450, notes: "Drop in porch basket" },
+  { name: "Naveen Prasad", mobile: "9810010043", houseNo: "Flat 504, Tower B", street: "Godrej United, Whitefield", landmark: "Near Mahadevapura Ring Road", city: "Bengaluru", pincode: "560048", latitude: 12.9915, longitude: 77.7125, notes: "Deliver to door" },
+  { name: "Rekha Pillai", mobile: "9810010044", houseNo: "Villa 19, Adarsh Palm Retreat", street: "Outer Ring Road, Bellandur", landmark: "Near Devarabisanahalli", city: "Bengaluru", pincode: "560103", latitude: 12.9234, longitude: 77.6854, notes: "Drop in cooler bag" },
+  { name: "Hemant Bajaj", mobile: "9810010045", houseNo: "B-403, Salarpuria Greenage", street: "Hosur Road, Bommanahalli", landmark: "Near Oxford College", city: "Bengaluru", pincode: "560068", latitude: 12.9056, longitude: 77.6250, notes: "Leave milk packet on door hook" },
+  // Customers without coordinates (for testing missing-coordinate and unmapped handling)
   { name: "Ankita Mathur", mobile: "9810010046", houseNo: "Flat 204, Oberoi Springs", street: "Link Road, Andheri West", landmark: "Near Fame Adlabs", city: "Mumbai", pincode: "400053", notes: "Security allows entry at 6 AM" },
   { name: "Deepak Sethi", mobile: "9810010047", houseNo: "B-32, Sea Face Park", street: "Bhulabhai Desai Road", landmark: "Near Breach Candy Hospital", city: "Mumbai", pincode: "400026", notes: "Ring doorbell once" },
   { name: "Aarti Agnihotri", mobile: "9810010048", houseNo: "Flat 702, Raheja Vistas", street: "Chandivali Farm Road", landmark: "Near Nahar Medical Centre", city: "Mumbai", pincode: "400072", notes: "Leave outside flat door" },
@@ -311,21 +312,37 @@ async function seed() {
           street: custInfo.street,
           landmark: custInfo.landmark,
           city: custInfo.city,
-          pincode: custInfo.pincode
+          pincode: custInfo.pincode,
+          latitude: custInfo.latitude || null,
+          longitude: custInfo.longitude || null,
         },
+        location: custInfo.latitude && custInfo.longitude ? {
+          latitude: custInfo.latitude,
+          longitude: custInfo.longitude,
+        } : undefined,
+        latitude: custInfo.latitude || null,
+        longitude: custInfo.longitude || null,
         deliveryNotes: custInfo.notes,
         assignedDm: assignedDmId,
         qrCode: `CUST-QR-${custInfo.mobile}`,
         products: customerSubs
       });
-      console.log(`  [Created Customer] ${cust.name} (${cust.mobile}) -> ${assignedDmId ? 'Assigned' : 'Unassigned'}`);
+      console.log(`  [Created Customer] ${cust.name} (${cust.mobile}) -> ${assignedDmId ? 'Assigned' : 'Unassigned'} [Coords: ${custInfo.latitude ? 'Yes' : 'No'}]`);
     } else {
       cust.role = "customer";
       cust.password = passwordHash;
       cust.assignedDm = assignedDmId;
       cust.products = customerSubs;
+      if (custInfo.latitude && custInfo.longitude) {
+        if (!cust.address) cust.address = {};
+        cust.address.latitude = custInfo.latitude;
+        cust.address.longitude = custInfo.longitude;
+        cust.location = { latitude: custInfo.latitude, longitude: custInfo.longitude };
+        cust.latitude = custInfo.latitude;
+        cust.longitude = custInfo.longitude;
+      }
       await cust.save();
-      console.log(`  [Existing Customer Synced] ${cust.name} (${cust.mobile})`);
+      console.log(`  [Existing Customer Synced] ${cust.name} (${cust.mobile}) [Coords: ${custInfo.latitude ? 'Yes' : 'No'}]`);
     }
     seededCustomers.push(cust);
   }

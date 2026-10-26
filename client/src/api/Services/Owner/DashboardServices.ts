@@ -26,3 +26,58 @@ export const getActiveDeliverySessionsService = async (): Promise<ActiveDelivery
     const req = await api.get('/dashboard/active-delivery-sessions');
     return req.data?.data || [];
 };
+
+export interface CustomerDeliveryLocation {
+    customerId: string;
+    name: string;
+    mobile: string;
+    address?: {
+        houseNo?: string;
+        street?: string;
+        landmark?: string;
+        city?: string;
+        pincode?: string;
+    } | null;
+    coordinates: {
+        latitude: number;
+        longitude: number;
+    } | null;
+    assignedDm: {
+        _id: string;
+        name: string;
+        mobile?: string;
+    } | null;
+    overallStatus: "delivered" | "pending" | "skipped" | "partial";
+    totalDeliveries: number;
+    productSummary?: string;
+    deliveries: {
+        entryId: string;
+        status: "delivered" | "pending" | "skipped";
+        deliveredAt?: string | null;
+        products: {
+            name: string;
+            quantity: number;
+            unit: string;
+        }[];
+        dm?: {
+            _id: string;
+            name: string;
+            mobile?: string;
+        } | null;
+    }[];
+}
+
+export interface CustomerLocationsResponse {
+    date: string;
+    totalCustomers: number;
+    withCoordinatesCount: number;
+    withoutCoordinatesCount: number;
+    data: CustomerDeliveryLocation[];
+}
+
+export const getCustomerDeliveryLocationsService = async (date?: string): Promise<CustomerLocationsResponse> => {
+    const req = await api.get('/dashboard/customer-locations', {
+        params: date ? { date } : {}
+    });
+    return req.data;
+};
