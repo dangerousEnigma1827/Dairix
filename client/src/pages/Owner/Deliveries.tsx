@@ -30,6 +30,7 @@ import {
   createDispatchService,
   getTodayDispatchService,
 } from "../../api/Services/Owner/DispatchServices";
+import { getSocket } from "../../api/socket";
 
 // ── Types: dispatch builder (pre-dispatch) ─────────────────────────────────
 
@@ -222,6 +223,53 @@ export default function Deliveries() {
       setStatusLoading(false);
     }
   };
+
+  // Real-time synchronization of delivery updates
+  useEffect(() => {
+    const socket = getSocket();
+    if (!socket.connected) {
+      socket.connect();
+    }
+
+    const handleEntryUpdated = (payload: {
+      entryId: string;
+      dispatchId?: string | null;
+      customerId: string;
+      dmId?: string | null;
+      status: "delivered" | "skipped" | "pending";
+      deliveredAt?: string | null;
+    }) => {
+      setDeliveryEntries((prev) => {
+        let changed = false;
+        const next = prev.map((e) => {
+          if (e._id === payload.entryId) {
+            changed = true;
+            return {
+              ...e,
+              status: payload.status,
+              deliveredAt: payload.deliveredAt || e.deliveredAt,
+            };
+          }
+          return e;
+        });
+        return changed ? next : prev;
+      });
+    };
+
+    const handleReconnect = () => {
+      if (mode === "status") {
+        fetchStatusData();
+      }
+    };
+
+    socket.on("delivery:entry:updated", handleEntryUpdated);
+    socket.on("connect", handleReconnect);
+
+    return () => {
+      socket.off("delivery:entry:updated", handleEntryUpdated);
+      socket.off("connect", handleReconnect);
+    };
+  }, [mode]);
 
   const fetchBuilderData = async () => {
     setBuilderLoading({ products: true, dms: true, customers: true });

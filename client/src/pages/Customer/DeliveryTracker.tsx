@@ -15,6 +15,7 @@ import {
   getMonthlyDeliveryTrack,
   type MonthlyDeliveryEntry,
 } from "../../api/Services/Customer/CustomerServices";
+import { getSocket } from "../../api/socket";
 
 // ────────────────────────────────────────────────────────────────────────────
 // Types
@@ -95,6 +96,74 @@ export default function DeliveryTracker() {
       cancelled = true;
     };
   }, [month, year]);
+
+  // Real-time synchronization for current month
+  useEffect(() => {
+    if (!isCurrentMonth) return;
+
+    const socket = getSocket();
+    if (!socket.connected) {
+      socket.connect();
+    }
+
+    const handleDeliveryUpdated = (payload: {
+      entryId: string;
+      customerId: string;
+      status: DailyStatus;
+      deliveredAt?: string | null;
+      date?: string;
+    }) => {
+      const validStatus: DailyStatus =
+        payload.status === "delivered" || payload.status === "pending"
+          ? payload.status
+          : "skipped";
+
+      setEntries((prev) => {
+        const todayDate = new Date();
+        const existingIdx = prev.findIndex((entry) => {
+          const d = new Date(entry.date);
+          return (
+            d.getDate() === todayDate.getDate() &&
+            d.getMonth() === todayDate.getMonth() &&
+            d.getFullYear() === todayDate.getFullYear()
+          );
+        });
+
+        if (existingIdx >= 0) {
+          const next = [...prev];
+          next[existingIdx] = {
+            ...next[existingIdx],
+            status: validStatus,
+            deliveredAt: payload.deliveredAt || next[existingIdx].deliveredAt,
+          };
+          return next;
+        }
+
+        return [
+          ...prev,
+          {
+            date: payload.date || new Date().toISOString(),
+            status: validStatus,
+            deliveredAt: payload.deliveredAt || null,
+          },
+        ];
+      });
+    };
+
+    const handleReconnect = () => {
+      getMonthlyDeliveryTrack(month, year)
+        .then((data) => setEntries(data))
+        .catch(() => {});
+    };
+
+    socket.on("delivery:entry:updated", handleDeliveryUpdated);
+    socket.on("connect", handleReconnect);
+
+    return () => {
+      socket.off("delivery:entry:updated", handleDeliveryUpdated);
+      socket.off("connect", handleReconnect);
+    };
+  }, [isCurrentMonth, month, year]);
 
   // Index entries by day-of-month for O(1) lookup while building the calendar
   const entriesByDay = useMemo(() => {

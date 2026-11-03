@@ -42,6 +42,21 @@ const addressSchema = new mongoose.Schema(
             type: Number,
             default: null,
         },
+
+        enabled: {
+            type: Boolean,
+            default: true,
+        },
+
+        isAddressEnabled: {
+            type: Boolean,
+            default: true,
+        },
+
+        addressEnabled: {
+            type: Boolean,
+            default: true,
+        },
     },
     {
         _id: false,
@@ -124,6 +139,21 @@ const userSchema = new mongoose.Schema(
         longitude: {
             type: Number,
             default: null,
+        },
+
+        enabled: {
+            type: Boolean,
+            default: true,
+        },
+
+        isAddressEnabled: {
+            type: Boolean,
+            default: true,
+        },
+
+        addressEnabled: {
+            type: Boolean,
+            default: true,
         },
 
         products:{ 

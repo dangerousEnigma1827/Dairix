@@ -127,8 +127,27 @@ export const getDMById = asyncHandler(async(req,res)=>{
 
 export const updateDM = asyncHandler(async(req,res)=>{
 
-    const {name,mobile}=req.body;
+    const {name, mobile, address, addressEnabled}=req.body;
 
+    const updateFields = {};
+    if (name) updateFields.name = name;
+    if (mobile) updateFields.mobile = mobile;
+    if (addressEnabled !== undefined) {
+        updateFields.addressEnabled = addressEnabled;
+        updateFields.isAddressEnabled = addressEnabled;
+    }
+    if (address && typeof address === "object") {
+        updateFields.address = {
+            ...address,
+            enabled: address.enabled !== undefined ? address.enabled : true,
+            isAddressEnabled: address.isAddressEnabled !== undefined ? address.isAddressEnabled : true,
+        };
+        if (address.latitude && address.longitude) {
+            updateFields.location = { latitude: Number(address.latitude), longitude: Number(address.longitude) };
+            updateFields.latitude = Number(address.latitude);
+            updateFields.longitude = Number(address.longitude);
+        }
+    }
 
     const dm = await User
         .findOneAndUpdate(
@@ -136,10 +155,7 @@ export const updateDM = asyncHandler(async(req,res)=>{
                 _id:req.params.id,
                 role:"dm"
             },
-            {
-                name,
-                mobile
-            },
+            updateFields,
             {
                 new:true
             }

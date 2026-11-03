@@ -483,6 +483,11 @@ export default function CustomerDashboard() {
     const handleReconnect = () => {
       // Reconcile delivery status with REST API if connection was interrupted
       handlleGetTodaysStatus();
+      getWeeklyDeliveryTrack().then((data) => setWeekData(data)).catch(() => {});
+      const now = new Date();
+      getMonthlyDeliveryTrack(now.getMonth() + 1, now.getFullYear())
+        .then((data) => setMonthlyData(data))
+        .catch(() => {});
     };
 
     socket.on("delivery:entry:updated", handleDeliveryUpdated);

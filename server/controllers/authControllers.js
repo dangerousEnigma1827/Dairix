@@ -156,3 +156,56 @@ export const getUserFromId = asyncHandler(async (req, res) => {
   }
   res.json(new ApiResponse(200, user, "User fetched successfully"));
 });
+
+export const updateMe = asyncHandler(async (req, res) => {
+  const userId = req.user._id;
+  const { name, mobile, address, addressEnabled, location, latitude, longitude, deliveryNotes } = req.body;
+  const updateData = {};
+  if (name) updateData.name = name;
+  if (mobile) updateData.mobile = mobile;
+  if (deliveryNotes !== undefined) updateData.deliveryNotes = deliveryNotes;
+  if (addressEnabled !== undefined) {
+    updateData.addressEnabled = addressEnabled;
+    updateData.isAddressEnabled = addressEnabled;
+  }
+  if (address && typeof address === "object") {
+    const existingUser = await User.findById(userId);
+    const mergedAddress = {
+      ...(existingUser?.address ? existingUser.address.toObject ? existingUser.address.toObject() : existingUser.address : {}),
+      ...address,
+      enabled: address.enabled !== undefined ? address.enabled : true,
+      isAddressEnabled: address.isAddressEnabled !== undefined ? address.isAddressEnabled : true,
+    };
+    updateData.address = mergedAddress;
+
+    const lat = address.latitude !== undefined ? address.latitude : existingUser?.address?.latitude;
+    const lng = address.longitude !== undefined ? address.longitude : existingUser?.address?.longitude;
+    if (isValidCoordinates(lat, lng)) {
+      updateData.location = { latitude: Number(lat), longitude: Number(lng) };
+      updateData.latitude = Number(lat);
+      updateData.longitude = Number(lng);
+      updateData.address.latitude = Number(lat);
+      updateData.address.longitude = Number(lng);
+    }
+  }
+  if (location && isValidCoordinates(location.latitude, location.longitude)) {
+    updateData.location = { latitude: Number(location.latitude), longitude: Number(location.longitude) };
+    updateData.latitude = Number(location.latitude);
+    updateData.longitude = Number(location.longitude);
+  }
+  if (latitude !== undefined && longitude !== undefined && isValidCoordinates(latitude, longitude)) {
+    updateData.latitude = Number(latitude);
+    updateData.longitude = Number(longitude);
+    updateData.location = { latitude: Number(latitude), longitude: Number(longitude) };
+  }
+
+  const updatedUser = await User.findByIdAndUpdate(userId, { $set: updateData }, { new: true })
+    .populate("assignedDm")
+    .select("-password");
+
+  if (!updatedUser) {
+    throw new ApiError(404, "User not found");
+  }
+
+  res.json(new ApiResponse(200, { user: updatedUser }, "Profile updated successfully"));
+});

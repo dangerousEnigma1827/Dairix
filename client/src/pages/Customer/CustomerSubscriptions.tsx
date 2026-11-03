@@ -109,8 +109,9 @@ export default function CustomerSubscriptions() {
 
   //montly cost
   const totalMonthly = subs.reduce((accumulator, s) => {
-    const p = allProducts.find((p) => p._id === s._id)!;
-    return accumulator + monthlyEst(s.quantity, p.price);
+    const p = allProducts.find((p) => p._id === s._id);
+    const unitPrice = p?.price ?? s.price ?? 0;
+    return accumulator + monthlyEst(s.quantity, unitPrice);
   }, 0);
 
   const hasChanges =
@@ -195,7 +196,7 @@ export default function CustomerSubscriptions() {
   }
 
   
-  const hadleGetAllProducts = async () =>{
+  const handleGetAllProducts = async () =>{
     setLoading((prev)=>{
       return {...prev, allProductsLoading:true}
     })
@@ -216,11 +217,11 @@ export default function CustomerSubscriptions() {
   //effects
   useEffect(()=>{
     handleGetCurrentUser()
-    hadleGetAllProducts()
+    handleGetAllProducts()
   },[])
 
  
-  if(loading.customerLoading || !customer){
+  if (loading.customerLoading || loading.allProductsLoading || !customer) {
     return <LoadingPageNoReturn/>
   }
 
@@ -306,8 +307,12 @@ export default function CustomerSubscriptions() {
             ) : (
               <div className="space-y-3">
                 {subs.map((sub) => {
-                  const product = allProducts.find((p) => p._id === sub._id)!;
-                  const monthly = monthlyEst(sub.quantity, sub.price);
+                  const product = allProducts.find((p) => p._id === sub._id);
+                  const productName = product?.name || sub.name || "Product";
+                  const productPrice = product?.price ?? sub.price ?? 0;
+                  const productUnit = product?.unit || sub.unit || "unit";
+                  const productImage = product?.image || sub.image;
+                  const monthly = monthlyEst(sub.quantity, productPrice);
                   const isConfirmingDelete = deleteConfirm === sub._id;
 
                   return (
@@ -318,17 +323,17 @@ export default function CustomerSubscriptions() {
                       {/* Product info row */}
                       <div className="flex items-center gap-3 p-4 pb-3">
                         <div className="bg-blue-50 rounded-xl w-11 h-11 flex items-center justify-center text-2xl shrink-0">
-                          { !product.image ? 
+                          { !productImage ? 
                             <Milk/> : 
-                            <img src={product.image} alt="" className="w-11 h-11 rounded-xl flex shrink-0"/>
+                            <img src={productImage} alt="" className="w-11 h-11 rounded-xl flex shrink-0"/>
                           }
                         </div>
                         <div className="flex-1 min-w-0">
                           <p className="font-semibold text-slate-900 text-sm">
-                            {product.name}
+                            {productName}
                           </p>
                           <p className="text-xs text-slate-500 mt-0.5">
-                            ₹{product.price}/{product.unit}
+                            ₹{productPrice}/{productUnit}
                           </p>
                           
                         </div>
@@ -361,7 +366,7 @@ export default function CustomerSubscriptions() {
                         <div className="flex items-center gap-2 bg-rose-50 border-t border-rose-100 px-4 py-3">
                           <AlertCircle size={14} className="text-rose-500 shrink-0" />
                           <p className="text-xs text-rose-600 flex-1">
-                            Remove {product.name}?
+                            Remove {productName}?
                           </p>
                           <button
                             onClick={() => setDeleteConfirm(null)}

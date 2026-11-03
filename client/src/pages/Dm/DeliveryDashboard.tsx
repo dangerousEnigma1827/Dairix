@@ -33,6 +33,7 @@ import { getDmTodayDeliveriesService } from "../../api/Services/Owner/DeliveryEn
 
 import LogoutModal from "../LogoutModal";
 import { useUser } from "../../hooks/useUser";
+import { getSocket } from "../../api/socket";
 // ── Types — align with your backend response shape ────────────────────────────
 
 type DeliveryStatus = "delivered" | "skipped" | "pending" | "paused";
@@ -71,7 +72,14 @@ type DMProfile = {
   _id: string;
   name: string;
   mobile: string;
-  zone: string;
+  zone?: string;
+  address?: {
+    houseNo?: string;
+    street?: string;
+    landmark?: string;
+    city?: string;
+    pincode?: string;
+  };
 };
 
 const statusConfig: Record<
@@ -181,6 +189,49 @@ export default function DeliveryDashboard() {
     handleGetDeliveries();
   }, []);
 
+  // Real-time synchronization of delivery entry updates
+  useEffect(() => {
+    const socket = getSocket();
+    if (!socket.connected) {
+      socket.connect();
+    }
+
+    const handleEntryUpdated = (payload: {
+      entryId: string;
+      customerId: string;
+      status: DeliveryStatus;
+      deliveredAt?: string | null;
+    }) => {
+      setDeliveries((prev) => {
+        let changed = false;
+        const next = prev.map((d) => {
+          if (d._id === payload.entryId || d.customer?._id === payload.customerId) {
+            changed = true;
+            return {
+              ...d,
+              status: payload.status,
+              deliveredAt: payload.deliveredAt || d.deliveredAt,
+            };
+          }
+          return d;
+        });
+        return changed ? next : prev;
+      });
+    };
+
+    const handleReconnect = () => {
+      handleGetDeliveries();
+    };
+
+    socket.on("delivery:entry:updated", handleEntryUpdated);
+    socket.on("connect", handleReconnect);
+
+    return () => {
+      socket.off("delivery:entry:updated", handleEntryUpdated);
+      socket.off("connect", handleReconnect);
+    };
+  }, []);
+
   const { logout } = useUser();
 
   const handleLogout = async () => {
@@ -278,10 +329,17 @@ export default function DeliveryDashboard() {
                 {getInitials(dm.name)}
               </div>
             </div>
-            <div className="flex items-center gap-1.5 text-blue-100 text-xs mt-2">
-              {/* <MapPin size={12} /> */}
-              <span>{dm.zone}</span>
-            </div>
+            {formatAddress(dm.address) && (
+              <div className="flex items-center gap-1.5 text-blue-100 text-xs mt-2">
+                <MapPin size={12} className="shrink-0" />
+                <span>{formatAddress(dm.address)}</span>
+              </div>
+            )}
+            {dm.zone && !formatAddress(dm.address) && (
+              <div className="flex items-center gap-1.5 text-blue-100 text-xs mt-2">
+                <span>{dm.zone}</span>
+              </div>
+            )}
           </div>
 
           {/* ── Today's stats ── */}

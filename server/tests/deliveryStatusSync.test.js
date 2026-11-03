@@ -1,4 +1,5 @@
 import 'dotenv/config';
+import { jest } from '@jest/globals';
 import http from 'http';
 import jwt from 'jsonwebtoken';
 import mongoose from 'mongoose';
@@ -373,5 +374,316 @@ describe('P0: Real-Time Delivery Status Synchronization', () => {
 
     const inDb = await DeliveryEntry.findById(activeDeliveryEntry._id);
     expect(inDb.status).toBe('delivered');
+  });
+
+  test('5. Successful skipped update persists to MongoDB and emits delivery:entry:updated', async () => {
+    const salt = Date.now().toString().slice(-8);
+
+    const skipCustomer = await User.create({
+      name: `Skip Customer ${salt}`,
+      mobile: `91${salt}01`,
+      password: 'Password@123',
+      role: 'customer',
+      assignedDm: authDm._id,
+    });
+    createdUserIds.push(skipCustomer._id);
+
+    const skipCustomerToken = jwt.sign(
+      { _id: skipCustomer._id, mobile: skipCustomer.mobile, role: skipCustomer.role },
+      process.env.JWT_SECRET,
+      { expiresIn: '1h' }
+    );
+
+    // Entry with date in the past (cutoff passed -> isDeliveryDayEnded is true)
+    const pastDate = new Date(Date.now() - 24 * 60 * 60 * 1000);
+    const skipEntry = await DeliveryEntry.create({
+      dispatch: todayDispatch._id,
+      customer: skipCustomer._id,
+      dm: authDm._id,
+      products: [],
+      status: 'pending',
+      date: pastDate,
+      createdAt: pastDate,
+    });
+    createdEntryIds.push(skipEntry._id);
+
+    const ownerSocket = Client(`http://localhost:${serverPort}`, {
+      auth: { token: ownerToken },
+      transports: ['websocket'],
+    });
+
+    const customerSocket = Client(`http://localhost:${serverPort}`, {
+      auth: { token: skipCustomerToken },
+      transports: ['websocket'],
+    });
+
+    await Promise.all([
+      new Promise((res) => ownerSocket.on('connect', res)),
+      new Promise((res) => customerSocket.on('connect', res)),
+    ]);
+
+    let ownerReceived = null;
+    let customerReceived = null;
+
+    ownerSocket.on('delivery:entry:updated', (payload) => {
+      ownerReceived = payload;
+    });
+    customerSocket.on('delivery:entry:updated', (payload) => {
+      customerReceived = payload;
+    });
+
+    const res = await request(app)
+      .post(`/api/deliveryEntry/delivery/${skipCustomer._id}`)
+      .set('Cookie', [`token=${dmToken}`])
+      .send({ status: 'skipped' })
+      .expect(200);
+
+    expect(res.body.status).toBe('skipped');
+
+    // Verify MongoDB persistence
+    const inDb = await DeliveryEntry.findById(skipEntry._id);
+    expect(inDb.status).toBe('skipped');
+
+    await new Promise((resolve) => setTimeout(resolve, 300));
+
+    expect(ownerReceived).toBeTruthy();
+    expect(ownerReceived.entryId).toBe(skipEntry._id.toString());
+    expect(ownerReceived.status).toBe('skipped');
+    expect(ownerReceived.customerId).toBe(skipCustomer._id.toString());
+
+    expect(customerReceived).toBeTruthy();
+    expect(customerReceived.entryId).toBe(skipEntry._id.toString());
+    expect(customerReceived.status).toBe('skipped');
+
+    ownerSocket.disconnect();
+    customerSocket.disconnect();
+  });
+
+  test('6. Database save error fails safe without emitting delivery:entry:updated', async () => {
+    // Reset entry to pending so that it enters the update logic
+    await DeliveryEntry.findByIdAndUpdate(activeDeliveryEntry._id, { status: 'pending' });
+
+    const ownerSocket = Client(`http://localhost:${serverPort}`, {
+      auth: { token: ownerToken },
+      transports: ['websocket'],
+    });
+    await new Promise((res) => ownerSocket.on('connect', res));
+
+    let eventEmitted = false;
+    ownerSocket.on('delivery:entry:updated', () => {
+      eventEmitted = true;
+    });
+
+    const saveSpy = jest.spyOn(DeliveryEntry.prototype, 'save').mockImplementationOnce(() => {
+      throw new Error('Database write failure');
+    });
+
+    await request(app)
+      .post(`/api/deliveryEntry/delivery/${targetCustomer._id}`)
+      .set('Cookie', [`token=${dmToken}`])
+      .send({ status: 'delivered' })
+      .expect(500);
+
+    saveSpy.mockRestore();
+
+    await new Promise((resolve) => setTimeout(resolve, 300));
+    expect(eventEmitted).toBe(false);
+
+    ownerSocket.disconnect();
+  });
+
+  test('7. Multi-tenant business isolation: updates for Business A are not emitted to Business B owner', async () => {
+    const salt = Date.now().toString().slice(-8);
+
+    // Business B owner, DM, and customer
+    const ownerB = await User.create({
+      name: `Owner Dairy B ${salt}`,
+      mobile: `92${salt}01`,
+      password: 'Password@123',
+      role: 'owner',
+    });
+    createdUserIds.push(ownerB._id);
+
+    const dmB = await User.create({
+      name: `DM Dairy B ${salt}`,
+      mobile: `92${salt}02`,
+      password: 'Password@123',
+      role: 'dm',
+      businessId: ownerB._id,
+    });
+    createdUserIds.push(dmB._id);
+
+    const customerB = await User.create({
+      name: `Customer Dairy B ${salt}`,
+      mobile: `92${salt}03`,
+      password: 'Password@123',
+      role: 'customer',
+      businessId: ownerB._id,
+      assignedDm: dmB._id,
+    });
+    createdUserIds.push(customerB._id);
+
+    const ownerBToken = jwt.sign(
+      { _id: ownerB._id, mobile: ownerB.mobile, role: ownerB.role },
+      process.env.JWT_SECRET,
+      { expiresIn: '1h' }
+    );
+
+    // Associate authDm with ownerUser businessId
+    authDm.businessId = ownerUser._id;
+    await authDm.save();
+
+    const dmATokenScoped = jwt.sign(
+      { _id: authDm._id, mobile: authDm.mobile, role: authDm.role, businessId: ownerUser._id },
+      process.env.JWT_SECRET,
+      { expiresIn: '1h' }
+    );
+
+    const ownerASocket = Client(`http://localhost:${serverPort}`, {
+      auth: { token: ownerToken },
+      transports: ['websocket'],
+    });
+
+    const ownerBSocket = Client(`http://localhost:${serverPort}`, {
+      auth: { token: ownerBToken },
+      transports: ['websocket'],
+    });
+
+    await Promise.all([
+      new Promise((res) => ownerASocket.on('connect', res)),
+      new Promise((res) => ownerBSocket.on('connect', res)),
+    ]);
+
+    let ownerAReceived = false;
+    let ownerBReceived = false;
+
+    ownerASocket.on('delivery:entry:updated', () => {
+      ownerAReceived = true;
+    });
+    ownerBSocket.on('delivery:entry:updated', () => {
+      ownerBReceived = true;
+    });
+
+    const todayIST = getKolkataDateString();
+    const todayDate = new Date(`${todayIST}T06:00:00.000+05:30`);
+
+    const entryBusinessA = await DeliveryEntry.create({
+      dispatch: todayDispatch._id,
+      customer: targetCustomer._id,
+      dm: authDm._id,
+      businessId: ownerUser._id,
+      products: [],
+      status: 'pending',
+      date: todayDate,
+      createdAt: todayDate,
+    });
+    createdEntryIds.push(entryBusinessA._id);
+
+    await request(app)
+      .post(`/api/deliveryEntry/delivery/${targetCustomer._id}`)
+      .set('Cookie', [`token=${dmATokenScoped}`])
+      .send({ status: 'delivered' })
+      .expect(200);
+
+    await new Promise((resolve) => setTimeout(resolve, 300));
+
+    expect(ownerAReceived).toBe(true);
+    expect(ownerBReceived).toBe(false);
+
+    ownerASocket.disconnect();
+    ownerBSocket.disconnect();
+  });
+
+  test('8. Repeated delivery update does not emit duplicate delivery:entry:updated socket events', async () => {
+    const ownerSocket = Client(`http://localhost:${serverPort}`, {
+      auth: { token: ownerToken },
+      transports: ['websocket'],
+    });
+
+    await new Promise((res) => ownerSocket.on('connect', res));
+
+    let eventCount = 0;
+    ownerSocket.on('delivery:entry:updated', () => {
+      eventCount++;
+    });
+
+    // targetCustomer's delivery entry is already 'delivered'
+    // Send repeated delivered confirmation
+    const res = await request(app)
+      .post(`/api/deliveryEntry/delivery/${targetCustomer._id}`)
+      .set('Cookie', [`token=${dmToken}`])
+      .send({ status: 'delivered' })
+      .expect(200);
+
+    expect(res.body.status).toBe('delivered');
+
+    await new Promise((resolve) => setTimeout(resolve, 300));
+    // Must not emit duplicate event
+    expect(eventCount).toBe(0);
+
+    ownerSocket.disconnect();
+  });
+
+  test('9. Socket event payload contains minimum required fields without sensitive user data', async () => {
+    const ownerSocket = Client(`http://localhost:${serverPort}`, {
+      auth: { token: ownerToken },
+      transports: ['websocket'],
+    });
+
+    await new Promise((res) => ownerSocket.on('connect', res));
+
+    let receivedPayload = null;
+    ownerSocket.on('delivery:entry:updated', (payload) => {
+      receivedPayload = payload;
+    });
+
+    const todayIST = getKolkataDateString();
+    const todayDate = new Date(`${todayIST}T06:00:00.000+05:30`);
+    const salt = Date.now().toString().slice(-8);
+
+    const payloadTestCustomer = await User.create({
+      name: `Payload Customer ${salt}`,
+      mobile: `93${salt}01`,
+      password: 'SecretPassword@123',
+      role: 'customer',
+      assignedDm: authDm._id,
+    });
+    createdUserIds.push(payloadTestCustomer._id);
+
+    const payloadEntry = await DeliveryEntry.create({
+      dispatch: todayDispatch._id,
+      customer: payloadTestCustomer._id,
+      dm: authDm._id,
+      products: [],
+      status: 'pending',
+      date: todayDate,
+      createdAt: todayDate,
+    });
+    createdEntryIds.push(payloadEntry._id);
+
+    await request(app)
+      .post(`/api/deliveryEntry/delivery/${payloadTestCustomer._id}`)
+      .set('Cookie', [`token=${dmToken}`])
+      .send({ status: 'delivered' })
+      .expect(200);
+
+    await new Promise((resolve) => setTimeout(resolve, 300));
+
+    expect(receivedPayload).toBeTruthy();
+    // Required fields
+    expect(receivedPayload.entryId).toBe(payloadEntry._id.toString());
+    expect(receivedPayload.customerId).toBe(payloadTestCustomer._id.toString());
+    expect(receivedPayload.dmId).toBe(authDm._id.toString());
+    expect(receivedPayload.status).toBe('delivered');
+    expect(receivedPayload.deliveredAt).toBeTruthy();
+    expect(receivedPayload.date).toBeTruthy();
+    expect(receivedPayload.updatedAt).toBeTruthy();
+
+    // Must NOT contain sensitive data
+    expect(receivedPayload.password).toBeUndefined();
+    expect(receivedPayload.mobile).toBeUndefined();
+    expect(receivedPayload.token).toBeUndefined();
+
+    ownerSocket.disconnect();
   });
 });

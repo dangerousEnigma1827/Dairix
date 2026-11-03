@@ -82,13 +82,17 @@ export const updateDeliveryStatus = async(req,res)=>{
             }
         }
 
+        const businessId = entry.businessId || entry.owner || req.user?.businessId;
+        if (!entry.businessId && businessId) {
+            entry.businessId = businessId;
+        }
+
         await entry.save();
 
         // Emit delivery:entry:updated event only after database save succeeds
         try {
             const io = getIO();
             if (io) {
-                const businessId = entry.businessId || entry.owner;
                 const payload = {
                     entryId: entry._id.toString(),
                     dispatchId: entry.dispatch ? entry.dispatch.toString() : null,
