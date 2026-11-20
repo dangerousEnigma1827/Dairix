@@ -55,6 +55,13 @@ const deliveryEntrySchema = new mongoose.Schema(
             quantity:{
                 type:Number,
                 required:true
+            },
+
+            // Unit price snapshot at dispatch time, used for billing.
+            // Older entries without it fall back to the product's current price.
+            price:{
+                type:Number,
+                min:0
             }
         }
     ],

@@ -30,7 +30,8 @@ export const createDispatch = async(req,res)=>{
                     dm:dmData.dmId,
                     products:customer.products.map((p)=>({
                         product:p._id,
-                        quantity:p.quantity
+                        quantity:p.quantity,
+                        ...(typeof p.price === "number" ? { price:p.price } : {})
                     }))
                 });
             }
