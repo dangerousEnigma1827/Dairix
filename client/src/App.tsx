@@ -22,6 +22,7 @@ import Deliveries from './pages/Owner/Deliveries'
 import Customers from './pages/Owner/Customers'
 import AssignDM from './pages/Owner/AssignDM'
 import DmDetails from './pages/Owner/DMDetails'
+import Billing from './pages/Owner/Billing'
 
 //dm
 import DeliveryDashboard from './pages/Dm/DeliveryDashboard'
@@ -91,6 +92,7 @@ function App() {
           <Route path="deliveries" element={<Deliveries />} />
           <Route path="customers" element={<Customers />} />
           <Route path="customers/:customerId/assign-dm" element={<AssignDM />} />
+          <Route path="billing" element={<Billing />} />
         </Route>
 
         {/* Delivery Staff (DM) protected routes */}

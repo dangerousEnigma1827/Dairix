@@ -4,8 +4,9 @@ import {
     Milk, 
     Users, 
     Truck, 
-    UserCog, 
-    LogOut
+    UserCog,
+    LogOut,
+    CreditCard
 } from "lucide-react";
 
 import { NavLink, useNavigate } from "react-router-dom";
@@ -157,7 +158,22 @@ function OwnerSidebar() {
                 </NavLink>
 
 
-{/* 
+                <NavLink
+                    to="/owner/billing"
+                    className={({isActive}) =>
+                        `flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition-all
+                        ${
+                            isActive
+                            ? "bg-white text-blue-600 shadow-md"
+                            : "hover:bg-blue-500"
+                        }`
+                    }
+                >
+                    <CreditCard size={20}/>
+                    Billing
+                </NavLink>
+
+{/*
                 <NavLink
                     to="/owner/payments"
                     className={({isActive}) =>
