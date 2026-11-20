@@ -46,6 +46,7 @@ import dmRoutesByDm from "./routes/Dm/dmRoutes.js"
 import dispatchRoutes from "./routes/Owner/dispatchRoutes.js"
 import deliveryEntryRoutes from "./routes/Owner/deliveryEntryRoutes.js"
 import ownerDashboardRoutes from "./routes/Owner/dashboardRoutes.js"
+import billingRoutes from "./routes/billingRoutes.js"
 
 app.use('/api/auth', authRoutes)
 app.use('/api/products', productRoutes)
@@ -57,6 +58,7 @@ app.use('/api/customers', customerRoutes);
 app.use('/api/dispatch', dispatchRoutes);
 app.use('/api/deliveryEntry', deliveryEntryRoutes);
 app.use('/api/dashboard', ownerDashboardRoutes);
+app.use('/api/billing', billingRoutes);
 
 
 //404 + global error handler
