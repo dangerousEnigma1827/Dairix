@@ -1,8 +1,39 @@
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, CreditCard, AlertCircle } from "lucide-react";
+import { ArrowLeft, Loader2, AlertCircle, Wallet } from "lucide-react";
+import {
+  currentPeriod,
+  formatINR,
+  getMyStatement,
+  type Statement,
+} from "../../api/Services/BillingServices";
+import { MonthPicker, StatementView } from "../../components/Billing/BillingParts";
 
 export default function CustomerBilling() {
   const navigate = useNavigate();
+  const [period, setPeriod] = useState(currentPeriod());
+  const [statement, setStatement] = useState<Statement | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  const changePeriod = (p: { month: number; year: number }) => {
+    setLoading(true);
+    setError("");
+    setPeriod(p);
+  };
+
+  useEffect(() => {
+    let active = true;
+    getMyStatement(period)
+      .then((s) => active && setStatement(s))
+      .catch(() => active && setError("Could not load your bill. Please try again."))
+      .finally(() => active && setLoading(false));
+    return () => {
+      active = false;
+    };
+  }, [period]);
+
+  const outstanding = statement?.summary.outstanding ?? 0;
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col">
@@ -20,30 +51,37 @@ export default function CustomerBilling() {
       </header>
 
       <main className="flex-1 max-w-md mx-auto w-full p-4 space-y-4">
-        <div className="bg-white rounded-2xl p-6 ring-1 ring-slate-100 shadow-sm text-center">
-          <div className="w-14 h-14 mx-auto rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center mb-4">
-            <CreditCard size={28} />
+        <div
+          className={`rounded-2xl p-5 text-white shadow-md ${
+            outstanding > 0 ? "bg-gradient-to-br from-rose-500 to-rose-600" : "bg-gradient-to-br from-emerald-500 to-emerald-600"
+          }`}
+        >
+          <div className="flex items-center gap-2 text-white/80 text-xs font-medium">
+            <Wallet size={14} /> Total amount due
           </div>
-          <h2 className="text-xl font-bold text-slate-900">Doorstep Collection Active</h2>
-          <p className="text-sm text-slate-500 mt-2">
-            Monthly milk delivery statements are generated at the end of each billing cycle. Your assigned delivery partner collects payments directly at your doorstep via Cash or UPI QR.
+          <p className="text-3xl font-bold mt-1">{formatINR(Math.max(outstanding, 0))}</p>
+          <p className="text-xs text-white/80 mt-1">
+            {outstanding > 0
+              ? "Pay your delivery partner by cash or UPI at your doorstep."
+              : outstanding < 0
+              ? `You have ${formatINR(-outstanding)} in advance credit.`
+              : "You're all settled up. Thank you!"}
           </p>
         </div>
 
-        <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 flex items-start gap-3">
-          <AlertCircle size={20} className="text-amber-500 shrink-0 mt-0.5" />
-          <div className="text-xs text-amber-800 space-y-1">
-            <p className="font-semibold text-sm">Need a billing invoice?</p>
-            <p>Contact your dairy distributor directly or request a printed receipt from your delivery staff during morning drop-off.</p>
-          </div>
-        </div>
+        <MonthPicker value={period} onChange={changePeriod} />
 
-        <button
-          onClick={() => navigate("/customer")}
-          className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 rounded-xl transition-colors shadow-sm"
-        >
-          Return to Dashboard
-        </button>
+        {loading ? (
+          <div className="flex justify-center py-10">
+            <Loader2 className="animate-spin text-blue-600" />
+          </div>
+        ) : error ? (
+          <div className="bg-rose-50 border border-rose-200 rounded-2xl p-4 flex items-center gap-2 text-sm text-rose-700">
+            <AlertCircle size={18} /> {error}
+          </div>
+        ) : statement ? (
+          <StatementView statement={statement} />
+        ) : null}
       </main>
     </div>
   );
